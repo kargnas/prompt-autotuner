@@ -1,0 +1,5 @@
+{
+  "name": "Auto Tuner",
+  "description": "An AI-powered tool that iteratively refines your LLM prompts. Provide an initial prompt, variables, and a desired output, and the AI will automatically adjust the prompt until it produces the expected result, using best practices as a guide.",
+  "requestFramePermissions": []
+}
