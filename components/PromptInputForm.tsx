@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import CodeBracketIcon from './icons/CodeBracketIcon';
 import TrashIcon from './icons/TrashIcon';
 import WandIcon from './icons/WandIcon';
@@ -8,7 +9,6 @@ import XCircleIcon from './icons/XCircleIcon';
 import BookmarkIcon from './icons/BookmarkIcon';
 import BookmarkSolidIcon from './icons/BookmarkSolidIcon';
 import type { TestCase, SavedPrompt } from '../types';
-import { translations } from '../translations';
 
 interface PromptInputFormProps {
   onSubmit: () => void;
@@ -41,7 +41,6 @@ interface PromptInputFormProps {
   diversificationType: 'positive' | 'negative' | null;
   onToggleSavePrompt: (data: Omit<SavedPrompt, 'id' | 'savedAt'>) => void;
   isPromptSaved: (promptText: string) => boolean;
-  language: 'en' | 'ko';
 }
 
 const Label: React.FC<{ htmlFor?: string; children: React.ReactNode }> = ({ htmlFor, children }) => (
@@ -94,16 +93,15 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
     onDiversificationDirectionChange,
     diversificationType,
     onToggleSavePrompt,
-    isPromptSaved,
-    language
+    isPromptSaved
 }) => {
-  const t = translations[language].inputForm;
+  const { t } = useTranslation();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return; // Prevent submission while loading
     if (testCases.length === 0) {
-        alert("Please add at least one test case.");
+        alert(t('inputForm.minOneTestCaseAlert'));
         return;
     }
     onSubmit();
@@ -115,13 +113,13 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4 md:h-full flex flex-col overflow-hidden">
       <div>
         <Label htmlFor="initial-prompt">
-          <span>{t.initialPromptLabel}</span>
+          <span>{t('inputForm.initialPromptLabel')}</span>
             <button 
-                type="button" 
-                onClick={() => onToggleSavePrompt({ prompt: initialPrompt, source: 'Initial Prompt', testCases })}
+                type="button"
+                onClick={() => onToggleSavePrompt({ prompt: initialPrompt, source: 'initialPrompt', testCases })}
                 disabled={isLoading}
                 className={`ml-auto p-1 transition-colors disabled:opacity-50 ${isInitialPromptSaved ? 'text-cyan-600' : 'text-gray-400 hover:text-cyan-600 hover:bg-gray-100'}`}
-                aria-label={isInitialPromptSaved ? t.unsaveInitial : t.saveInitial}
+                aria-label={isInitialPromptSaved ? t('inputForm.unsaveInitial') : t('inputForm.saveInitial')}
                 aria-pressed={isInitialPromptSaved}
             >
                 {isInitialPromptSaved ? <BookmarkSolidIcon className="w-4 h-4" /> : <BookmarkIcon className="w-4 h-4" />}
@@ -131,7 +129,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
           id="initial-prompt"
           value={initialPrompt}
           onChange={(e) => onInitialPromptChange(e.target.value)}
-          placeholder={t.initialPromptPlaceholder}
+          placeholder={t('inputForm.initialPromptPlaceholder')}
           required
           rows={4}
           disabled={isLoading}
@@ -139,21 +137,21 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
       </div>
       
       <div>
-        <Label htmlFor="refinement-direction">{t.refinementDirectionLabel}</Label>
-        <p className="text-xs text-gray-500 mb-2">{t.refinementDirectionHelp}</p>
+        <Label htmlFor="refinement-direction">{t('inputForm.refinementDirectionLabel')}</Label>
+        <p className="text-xs text-gray-500 mb-2">{t('inputForm.refinementDirectionHelp')}</p>
         <TextArea
             id="refinement-direction"
             value={refinementDirection}
             onChange={(e) => onRefinementDirectionChange(e.target.value)}
-            placeholder={t.refinementDirectionPlaceholder}
+            placeholder={t('inputForm.refinementDirectionPlaceholder')}
             rows={2}
             disabled={isLoading}
         />
       </div>
 
       <div>
-        <Label htmlFor="generation-model-selector">{t.generationModelLabel}</Label>
-        <p className="text-xs text-gray-500 mb-2">{t.generationModelHelp}</p>
+        <Label htmlFor="generation-model-selector">{t('inputForm.generationModelLabel')}</Label>
+        <p className="text-xs text-gray-500 mb-2">{t('inputForm.generationModelHelp')}</p>
         <select
             id="generation-model-selector"
             value={generationModel}
@@ -166,8 +164,8 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
     </div>
 
     <div>
-        <Label htmlFor="evaluation-model-selector">{t.evaluationModelLabel}</Label>
-        <p className="text-xs text-gray-500 mb-2">{t.evaluationModelHelp}</p>
+        <Label htmlFor="evaluation-model-selector">{t('inputForm.evaluationModelLabel')}</Label>
+        <p className="text-xs text-gray-500 mb-2">{t('inputForm.evaluationModelHelp')}</p>
         <select
             id="evaluation-model-selector"
             value={evaluationModel}
@@ -180,8 +178,8 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
     </div>
 
     <div>
-        <Label htmlFor="max-attempts">{t.maxAttemptsLabel}</Label>
-        <p className="text-xs text-gray-500 mb-2">{t.maxAttemptsHelp}</p>
+        <Label htmlFor="max-attempts">{t('inputForm.maxAttemptsLabel')}</Label>
+        <p className="text-xs text-gray-500 mb-2">{t('inputForm.maxAttemptsHelp')}</p>
         <Input
             type="number"
             id="max-attempts"
@@ -201,13 +199,13 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
       <div className="space-y-3 flex flex-col md:flex-1 md:min-h-0">
         <Label>
             <CodeBracketIcon className="w-5 h-5" />
-            <span>{t.testCasesLabel}</span>
+            <span>{t('inputForm.testCasesLabel')}</span>
         </Label>
         <div className="space-y-3 p-3 border border-gray-200 bg-gray-50/50 flex-1 overflow-y-auto">
             {testCases.map((tc, index) => (
                 <div key={tc.id} className="p-3 bg-white border border-gray-200 relative">
                     <div className="flex justify-between items-center mb-2">
-                        <p className="font-semibold text-gray-600 text-sm">{t.testCase} #{index + 1}</p>
+                        <p className="font-semibold text-gray-600 text-sm">{t('inputForm.testCase')} #{index + 1}</p>
                         <div className="flex items-center text-xs border border-gray-300 p-0.5 bg-white">
                            <button 
                                 type="button"
@@ -216,7 +214,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                                 aria-pressed={tc.type === 'positive'}
                                 disabled={isLoading}
                            >
-                                {t.positive}
+                                {t('inputForm.positive')}
                            </button>
                            <button 
                                 type="button"
@@ -225,31 +223,31 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                                 aria-pressed={tc.type === 'negative'}
                                 disabled={isLoading}
                            >
-                                {t.negative}
+                                {t('inputForm.negative')}
                            </button>
                         </div>
                     </div>
 
                     <div className="space-y-3">
                         <div className="space-y-1.5">
-                           <label className="block text-xs font-medium text-gray-500">{t.variables}</label>
+                           <label className="block text-xs font-medium text-gray-500">{t('inputForm.variables')}</label>
                             {tc.variables.map((variable) => (
                                 <div key={variable.id} className="p-2 space-y-1.5 bg-gray-50 border border-gray-200">
                                     <div className="flex items-center space-x-1.5">
                                         <Input
                                             type="text"
-                                            placeholder="key"
+                                            placeholder={t('common.variableKeyPlaceholder')}
                                             value={variable.key}
                                             onChange={(e) => onVariableChange(tc.id, variable.id, 'key', e.target.value)}
                                             className="font-mono !text-xs"
                                             disabled={isLoading}
                                         />
-                                        <button type="button" onClick={() => onRemoveVariable(tc.id, variable.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 disabled:opacity-50 flex-shrink-0" aria-label="Remove variable" disabled={isLoading || tc.variables.length <= 1}>
+                                        <button type="button" onClick={() => onRemoveVariable(tc.id, variable.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 disabled:opacity-50 flex-shrink-0" aria-label={t('common.removeVariable')} disabled={isLoading || tc.variables.length <= 1}>
                                             <TrashIcon className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                     <TextArea
-                                        placeholder="value"
+                                        placeholder={t('common.variableValuePlaceholder')}
                                         value={variable.value}
                                         onChange={(e) => onVariableChange(tc.id, variable.id, 'value', e.target.value)}
                                         className="!text-xs"
@@ -260,18 +258,18 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                             ))}
                             <button type="button" onClick={() => onAddVariable(tc.id)} className="flex items-center space-x-1 text-xs text-cyan-600 hover:text-cyan-700 pt-0.5 disabled:opacity-50" disabled={isLoading}>
                                 <PlusIcon className="w-3.5 h-3.5"/>
-                                <span>{t.addVariable}</span>
+                                <span>{t('inputForm.addVariable')}</span>
                             </button>
                         </div>
                         <div>
                              <label htmlFor={`expected-${tc.id}`} className="block text-xs font-medium text-gray-500 mb-1">
-                                {tc.type === 'positive' ? t.desiredOutput : t.forbiddenOutput}
+                                {tc.type === 'positive' ? t('inputForm.desiredOutput') : t('inputForm.forbiddenOutput')}
                              </label>
                             <TextArea
                                 id={`expected-${tc.id}`}
                                 value={tc.expectedOutput}
                                 onChange={(e) => onTestCaseOutputChange(tc.id, e.target.value)}
-                                placeholder={tc.type === 'positive' ? t.desiredOutputPlaceholder : t.forbiddenOutputPlaceholder}
+                                placeholder={tc.type === 'positive' ? t('inputForm.desiredOutputPlaceholder') : t('inputForm.forbiddenOutputPlaceholder')}
                                 required
                                 rows={3}
                                 className="!text-xs"
@@ -280,7 +278,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                         </div>
                          <div>
                              <label htmlFor={`reason-${tc.id}`} className="block text-xs font-medium text-gray-500 mb-1">
-                                {t.requirementLabel}
+                                {t('inputForm.requirementLabel')}
                              </label>
                             <TextArea
                                 id={`reason-${tc.id}`}
@@ -288,8 +286,8 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                                 onChange={(e) => onTestCaseDetailedReasonChange(tc.id, e.target.value)}
                                 placeholder={
                                     tc.type === 'positive' 
-                                    ? t.requirementPlaceholderPos
-                                    : t.requirementPlaceholderNeg
+                                    ? t('inputForm.requirementPlaceholderPos')
+                                    : t('inputForm.requirementPlaceholderNeg')
                                 }
                                 rows={2}
                                 className="!text-xs"
@@ -298,7 +296,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                         </div>
                     </div>
                      {testCases.length > 0 && (
-                        <button type="button" onClick={() => onRemoveTestCase(tc.id)} className="absolute top-1.5 right-1.5 p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 disabled:opacity-50" aria-label="Remove test case" disabled={isLoading}>
+                        <button type="button" onClick={() => onRemoveTestCase(tc.id)} className="absolute top-1.5 right-1.5 p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 disabled:opacity-50" aria-label={t('common.removeTestCase')} disabled={isLoading}>
                             <TrashIcon className="w-4 h-4" />
                         </button>
                     )}
@@ -307,7 +305,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
             <div className="flex flex-col items-center pt-2 space-y-2">
                 <div className="flex items-center justify-center space-x-4">
                     <button type="button" onClick={onAddTestCase} className="text-cyan-600 hover:text-cyan-700 font-medium text-sm disabled:text-gray-400" disabled={isLoading}>
-                        {t.addTestCase}
+                        {t('inputForm.addTestCase')}
                     </button>
                     <button
                         type="button"
@@ -316,7 +314,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                         className="flex items-center space-x-2 text-cyan-600 hover:text-cyan-700 font-medium text-sm disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
                         <WandIcon className="w-4 h-4" />
-                        <span>{isDiversifying && diversificationType === 'positive' ? t.working : t.diversifyPos}</span>
+                        <span>{isDiversifying && diversificationType === 'positive' ? t('inputForm.working') : t('inputForm.diversifyPos')}</span>
                     </button>
                     <button
                         type="button"
@@ -325,17 +323,17 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                         className="flex items-center space-x-2 text-red-500 hover:text-red-600 font-medium text-sm disabled:text-gray-400 disabled:cursor-not-allowed"
                     >
                         <WandIcon className="w-4 h-4" />
-                        <span>{isDiversifying && diversificationType === 'negative' ? t.working : t.diversifyNeg}</span>
+                        <span>{isDiversifying && diversificationType === 'negative' ? t('inputForm.working') : t('inputForm.diversifyNeg')}</span>
                     </button>
                 </div>
                  <div className="w-full max-w-sm">
                     <Input
                         type="text"
-                        placeholder={t.diversifyHint}
+                        placeholder={t('inputForm.diversifyHint')}
                         value={diversificationDirection}
                         onChange={(e) => onDiversificationDirectionChange(e.target.value)}
                         disabled={isDiversifying || isLoading || testCases.length === 0}
-                        aria-label="Diversification hint"
+                        aria-label={t('common.diversificationHintAria')}
                         className="!text-xs text-center"
                     />
                 </div>
@@ -350,7 +348,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
           className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-red-500"
         >
           <XCircleIcon className="w-5 h-5 mr-2"/>
-          {t.cancel}
+          {t('inputForm.cancel')}
         </button>
       ) : (
         <button
@@ -358,7 +356,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
           disabled={isDiversifying}
           className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent shadow-sm text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-cyan-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
-          {t.startRefining}
+          {t('inputForm.startRefining')}
         </button>
       )}
     </form>

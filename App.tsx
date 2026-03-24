@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Header from './components/Header';
 import PromptInputForm from './components/PromptInputForm';
 import RefinementDisplay from './components/RefinementDisplay';
@@ -7,21 +8,74 @@ import SettingsModal from './components/SettingsModal';
 import SavedPromptsPanel from './components/SavedPromptsPanel';
 import MobileNav from './components/MobileNav';
 import { runPrompt, refinePrompt, diversifyTestCases, evaluateOutput } from './services/llmService';
-import type { RefinementAttempt, TestCase, TestCaseResult, SavedPrompt, Variable } from './types';
+import type { RefinementAttempt, TestCase, TestCaseResult, SavedPrompt, SavedPromptSource, Variable } from './types';
 import { DEFAULT_PROMPT_RULE, DEFAULT_PROMPT, getDefaultTestCases, LOCAL_STORAGE_KEY, SAVED_PROMPTS_LOCAL_STORAGE_KEY, DEFAULT_GENERATION_MODEL, DEFAULT_EVALUATION_MODEL, AVAILABLE_MODELS } from './constants';
 import { getPromptGuide, getXmlPromptingGuide } from './services/contentService';
 import CodeBlock from './components/CodeBlock';
 import BookmarkIcon from './components/icons/BookmarkIcon';
 import BookmarkSolidIcon from './components/icons/BookmarkSolidIcon';
-import { translations } from './translations';
+import { getSavedPromptSourceLabel } from './i18n';
 
 interface StoredSessionData {
     initialPrompt: string;
     testCases: TestCase[];
 }
 
+interface LegacySavedPrompt {
+    id: string;
+    prompt: string;
+    savedAt: string;
+    source?: string;
+    details?: string;
+    testCases: TestCase[];
+    sourceAttempt?: number;
+    sourceLabel?: string;
+}
+
+const normalizeSavedPromptSource = (savedPrompt: LegacySavedPrompt): Pick<SavedPrompt, 'source' | 'sourceAttempt' | 'sourceLabel'> => {
+    if (savedPrompt.source === 'initialPrompt' || savedPrompt.source === 'finalResult' || savedPrompt.source === 'attempt' || savedPrompt.source === 'legacy') {
+        return {
+            source: savedPrompt.source as SavedPromptSource,
+            sourceAttempt: savedPrompt.sourceAttempt,
+            sourceLabel: savedPrompt.sourceLabel,
+        };
+    }
+
+    const source = savedPrompt.source ?? '';
+
+    if (source === 'Initial Prompt' || source === '초기 프롬프트' || source === '初始提示词' || source === '初始提示詞') {
+        return { source: 'initialPrompt' };
+    }
+
+    if (source === 'Final Result' || source === '최종 결과' || source === '最终结果' || source === '最終結果') {
+        return { source: 'finalResult' };
+    }
+
+    const attemptMatch = source.match(/(?:Attempt|시도|尝试|嘗試)\s*#?\s*(\d+)/i);
+    if (attemptMatch) {
+        return {
+            source: 'attempt',
+            sourceAttempt: Number(attemptMatch[1]),
+        };
+    }
+
+    return {
+        source: 'legacy',
+        sourceLabel: source || undefined,
+    };
+};
+
+const normalizeSavedPrompt = (savedPrompt: LegacySavedPrompt): SavedPrompt => ({
+    id: savedPrompt.id,
+    prompt: savedPrompt.prompt,
+    savedAt: savedPrompt.savedAt,
+    details: savedPrompt.details,
+    testCases: savedPrompt.testCases,
+    ...normalizeSavedPromptSource(savedPrompt),
+});
+
 const App: React.FC = () => {
-    const [language, setLanguage] = useState<'en' | 'ko'>('en');
+    const { t } = useTranslation();
     const [initialPrompt, setInitialPrompt] = useState<string>(DEFAULT_PROMPT);
     const [refinementDirection, setRefinementDirection] = useState<string>('');
     const [generationModel, setGenerationModel] = useState<string>(DEFAULT_GENERATION_MODEL);
@@ -45,23 +99,12 @@ const App: React.FC = () => {
     const [negativePromptRule, setNegativePromptRule] = useState<string>(DEFAULT_PROMPT_RULE);
     
     const abortControllerRef = useRef<AbortController | null>(null);
-    const t = translations[language];
-
-    useEffect(() => {
-        // Auto-detect language
-        const browserLang = navigator.language;
-        if (browserLang.startsWith('ko')) {
-            setLanguage('ko');
-        } else {
-            setLanguage('en');
-        }
-    }, []);
 
     useEffect(() => {
         if (!isLoading && !status) {
-             setStatus(translations[language].process.ready);
+             setStatus(t('process.ready'));
         }
-    }, [language, isLoading, status]);
+    }, [t, isLoading, status]);
 
     useEffect(() => {
         const initializeSettings = () => {
@@ -101,7 +144,9 @@ const App: React.FC = () => {
             
             const savedPromptsData = localStorage.getItem(SAVED_PROMPTS_LOCAL_STORAGE_KEY);
             if (savedPromptsData) {
-                setSavedPrompts(JSON.parse(savedPromptsData));
+                const normalizedPrompts = (JSON.parse(savedPromptsData) as LegacySavedPrompt[]).map(normalizeSavedPrompt);
+                setSavedPrompts(normalizedPrompts);
+                localStorage.setItem(SAVED_PROMPTS_LOCAL_STORAGE_KEY, JSON.stringify(normalizedPrompts));
             }
 
         } catch (e) {
@@ -136,13 +181,13 @@ const App: React.FC = () => {
     };
 
     const handleToggleSavePrompt = (data: Omit<SavedPrompt, 'id' | 'savedAt'>) => {
-        const { prompt: promptText, source } = data;
+        const { prompt: promptText } = data;
         const isAlreadySaved = isPromptSaved(promptText);
 
         if (isAlreadySaved) {
             // It exists, so remove it based on content
             updateSavedPrompts(savedPrompts.filter(p => p.prompt !== promptText));
-            setStatus(translations[language].process.unsaved);
+            setStatus(t('process.unsaved'));
         } else {
             // It doesn't exist, so save it.
             const newPrompt: SavedPrompt = {
@@ -151,25 +196,25 @@ const App: React.FC = () => {
                 savedAt: new Date().toISOString(),
             };
             updateSavedPrompts([newPrompt, ...savedPrompts]);
-            setStatus(translations[language].process.saved.replace('{{source}}', source));
+            setStatus(t('process.saved', { source: getSavedPromptSourceLabel(newPrompt, t) }));
         }
     };
 
     const handleDeletePrompt = (id: string) => {
-        if (window.confirm(translations[language].saved.confirmDelete)) {
+        if (window.confirm(t('saved.confirmDelete'))) {
             updateSavedPrompts(savedPrompts.filter(p => p.id !== id));
         }
     };
 
     const handleLoadPrompt = (promptToLoad: SavedPrompt) => {
-        if (window.confirm(translations[language].saved.confirmLoad)) {
+        if (window.confirm(t('saved.confirmLoad'))) {
             setInitialPrompt(promptToLoad.prompt);
             setTestCases(promptToLoad.testCases);
             setHistory([]);
             setFinalPrompt(null);
             setError(null);
             // Reuse the existing status logic, but maybe just say "Loaded"
-            setStatus(translations[language].process.ready);
+            setStatus(t('process.ready'));
             setActiveView('setup'); // Switch to setup view on mobile after loading
         }
     };
@@ -194,14 +239,14 @@ const App: React.FC = () => {
     };
 
     const handleReset = () => {
-        if (window.confirm(translations[language].saved.confirmReset)) {
+        if (window.confirm(t('saved.confirmReset'))) {
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             setInitialPrompt(DEFAULT_PROMPT);
             setTestCases(getDefaultTestCases());
             setHistory([]);
             setFinalPrompt(null);
             setError(null);
-            setStatus(translations[language].process.ready);
+            setStatus(t('process.ready'));
         }
     };
 
@@ -283,14 +328,14 @@ const App: React.FC = () => {
 
     const handleDiversify = useCallback(async (type: 'positive' | 'negative') => {
         if (testCases.length === 0) {
-            setError("Please add at least one test case to use as a base for diversification.");
+            setError(t('process.diversifyNeedBaseError'));
             return;
         }
 
         const firstCase = testCases[0];
         const firstCaseVars = variablesArrayToObject(firstCase.variables);
         if (Object.values(firstCaseVars).some(v => !v.trim()) || !firstCase.expectedOutput.trim()) {
-            setError("Please ensure the first test case is completely filled out before diversifying.");
+            setError(t('process.diversifyIncompleteBaseError'));
             return;
         }
 
@@ -318,36 +363,33 @@ const App: React.FC = () => {
             }));
             setTestCases(prev => [...prev, ...newTestCases]);
         } catch (err: any) {
-            setError(`Failed to diversify test cases: ${err.message}`);
+            setError(t('process.diversifyFailedError', { error: err.message }));
         } finally {
             setIsDiversifying(false);
             setDiversificationType(null);
         }
-    }, [testCases, diversificationDirection, evaluationModel]);
+    }, [testCases, diversificationDirection, evaluationModel, t]);
 
     const handleCancel = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
-            setStatus(translations[language].process.cancelled);
+            setStatus(t('process.cancelled'));
         }
     };
 
     const handleRefine = useCallback(async () => {
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
-        
-        // Need to capture the current language translations for use inside the async loop
-        const currentT = translations[language];
 
         setIsLoading(true);
-        setStatus(currentT.process.starting);
+        setStatus(t('process.starting'));
         setHistory([]);
         setFinalPrompt(null);
         setError(null);
         setActiveView('process'); // Switch to process view on mobile
 
         if (testCases.length === 0 || testCases.some(tc => tc.variables.some(v => !v.key.trim() || !v.value.trim()) || !tc.expectedOutput.trim())) {
-            setError("Please ensure all test cases have variables (both key and value) and a desired output filled in before starting.");
+            setError(t('process.startValidationError'));
             setIsLoading(false);
             return;
         }
@@ -360,7 +402,7 @@ const App: React.FC = () => {
             if (signal.aborted) return;
             
             const attempt = i + 1;
-            setStatus(currentT.process.testing.replace('{{attempt}}', String(attempt)).replace('{{max}}', String(maxAttempts)).replace('{{count}}', String(testCases.length)));
+            setStatus(t('process.testing', { attempt, max: maxAttempts, count: testCases.length }));
             
             const previousAttempt = cumulativeHistory.length > 0 ? cumulativeHistory[cumulativeHistory.length - 1] : null;
 
@@ -370,7 +412,7 @@ const App: React.FC = () => {
                 previousPrompt: previousAttempt?.prompt,
                 refinementReasoning: lastReasoning,
                 isSuccess: false,
-                details: `Running tests...`,
+                details: t('process.runningTests'),
                 testCaseResults: [],
             };
             cumulativeHistory = [...cumulativeHistory, initialAttemptLog];
@@ -379,7 +421,7 @@ const App: React.FC = () => {
             try {
                 if (signal.aborted) return;
                 
-                setStatus(currentT.process.running.replace('{{attempt}}', String(attempt)).replace('{{max}}', String(maxAttempts)).replace('{{count}}', String(testCases.length)));
+                setStatus(t('process.running', { attempt, max: maxAttempts, count: testCases.length }));
 
                 const testPromises = testCases.map(async (testCase): Promise<TestCaseResult> => {
                     const variables = variablesArrayToObject(testCase.variables);
@@ -403,7 +445,7 @@ const App: React.FC = () => {
 
                 const passedCount = results.filter(r => r.status === 'passed').length;
                 const allPassed = passedCount === testCases.length;
-                const details = currentT.process.details.replace('{{passed}}', String(passedCount)).replace('{{total}}', String(testCases.length));
+                const details = t('process.details', { passed: passedCount, total: testCases.length });
 
                 const finalAttemptLog: RefinementAttempt = {
                     ...cumulativeHistory[cumulativeHistory.length - 1],
@@ -416,17 +458,17 @@ const App: React.FC = () => {
                 setHistory([...cumulativeHistory]);
 
                 if (allPassed) {
-                    setStatus(currentT.process.success.replace('{{count}}', String(testCases.length)));
+                    setStatus(t('process.success', { count: testCases.length }));
                     setFinalPrompt(currentPrompt);
                     setIsLoading(false);
                     setActiveView('result'); // Switch to result view on mobile
                     return;
                 }
 
-                setStatus(`Attempt ${attempt}/${maxAttempts}: ${details}`);
+                setStatus(t('process.attemptSummary', { attempt, max: maxAttempts, details }));
                 
                 if (i < maxAttempts - 1) {
-                    setStatus(currentT.process.refining.replace('{{attempt}}', String(attempt)).replace('{{max}}', String(maxAttempts)));
+                    setStatus(t('process.refining', { attempt, max: maxAttempts }));
                     const previousAttemptsSummary = cumulativeHistory.map(h => `Attempt #${h.attempt}: ${h.details}`).join('\n');
                     const firstFailure = results.find(r => r.status === 'failed');
                     const firstFailureIndex = testCases.findIndex(tc => tc.id === firstFailure?.testCase.id);
@@ -459,12 +501,12 @@ const App: React.FC = () => {
 
             } catch (err: any) {
                 if (err.name === 'AbortError') {
-                    setError(currentT.process.cancelled);
-                    setStatus(currentT.process.cancelled);
+                    setError(t('process.cancelled'));
+                    setStatus(t('process.cancelled'));
                     setIsLoading(false);
                     return;
                 }
-                const errorMessage = currentT.process.error.replace('{{attempt}}', String(attempt)).replace('{{error}}', err.message);
+                const errorMessage = t('process.error', { attempt, error: err.message });
                 setError(errorMessage);
                 setStatus(errorMessage);
                 setIsLoading(false);
@@ -473,18 +515,18 @@ const App: React.FC = () => {
             }
         }
 
-        setError(currentT.process.fail.replace('{{max}}', String(maxAttempts)));
-        setStatus(currentT.process.finished);
+        setError(t('process.fail', { max: maxAttempts }));
+        setStatus(t('process.finished'));
         setIsLoading(false);
         setActiveView('result');
 
-    }, [testCases, promptGuide, negativePromptRule, initialPrompt, generationModel, evaluationModel, refinementDirection, maxAttempts, language]);
+    }, [testCases, promptGuide, negativePromptRule, initialPrompt, generationModel, evaluationModel, refinementDirection, maxAttempts, t]);
 
     const renderFinalResult = () => (
         <>
             {isLoading && !finalPrompt && !error && (
                 <div className="flex items-center justify-center h-full text-gray-400">
-                    <p>{t.process.waiting}</p>
+                    <p>{t('process.waiting')}</p>
                 </div>
             )}
             {error && <div className="p-4 bg-red-50 border border-red-300 text-red-700">{error}</div>}
@@ -493,16 +535,16 @@ const App: React.FC = () => {
                 return (
                     <div className="p-4 bg-green-50 border border-green-300">
                         <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-lg font-bold text-green-700">{t.result.successTitle}</h3>
+                            <h3 className="text-lg font-bold text-green-700">{t('result.successTitle')}</h3>
                             <button
                                 onClick={() => handleToggleSavePrompt({
                                     prompt: finalPrompt,
-                                    source: 'Final Result',
-                                    details: `Passed ${testCases.length}/${testCases.length} tests`,
+                                    source: 'finalResult',
+                                    details: t('process.details', { passed: testCases.length, total: testCases.length }),
                                     testCases: testCases,
                                 })}
                                 className={`p-1.5 transition-colors ${isSaved ? 'text-cyan-600' : 'text-gray-500 hover:bg-green-100 hover:text-cyan-600'}`}
-                                aria-label={isSaved ? t.result.unsaveFinal : t.result.saveFinal}
+                                aria-label={isSaved ? t('result.unsaveFinal') : t('result.saveFinal')}
                                 aria-pressed={isSaved}
                             >
                                 {isSaved ? <BookmarkSolidIcon className="w-5 h-5" /> : <BookmarkIcon className="w-5 h-5" />}
@@ -514,7 +556,7 @@ const App: React.FC = () => {
             })()}
             {!isLoading && !finalPrompt && !error && (
                  <div className="flex items-center justify-center h-full text-gray-400">
-                    <p>{t.inputForm.finalPrompt}</p>
+                    <p>{t('inputForm.finalPrompt')}</p>
                 </div>
             )}
         </>
@@ -524,9 +566,7 @@ const App: React.FC = () => {
         <div className="flex flex-col h-screen font-sans">
             <Header 
                 onOpenSettings={() => setIsSettingsOpen(true)} 
-                onReset={handleReset} 
-                language={language}
-                onLanguageChange={setLanguage}
+                onReset={handleReset}
             />
             <SettingsModal 
                 isOpen={isSettingsOpen}
@@ -535,7 +575,6 @@ const App: React.FC = () => {
                 currentNegativeRule={negativePromptRule}
                 onSave={handleSaveSettings}
                 onRestoreDefaults={handleRestoreDefaults}
-                language={language}
             />
             <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
                 {/* --- Desktop View --- */}
@@ -573,7 +612,6 @@ const App: React.FC = () => {
                             diversificationType={diversificationType}
                             onToggleSavePrompt={handleToggleSavePrompt}
                             isPromptSaved={isPromptSaved}
-                            language={language}
                         />
                     </div>
                     
@@ -581,7 +619,7 @@ const App: React.FC = () => {
                         {/* Center Panel: Process Log */}
                         <div className="flex-1 flex flex-col border-r border-gray-200">
                            <div className="p-3 border-b border-gray-200 bg-gray-100">
-                             <h2 className="text-lg font-semibold text-gray-800">{t.process.title}</h2>
+                             <h2 className="text-lg font-semibold text-gray-800">{t('process.title')}</h2>
                              <p className={`text-sm mt-1 ${isLoading ? 'text-cyan-600 animate-pulse' : 'text-gray-500'}`}>{status}</p>
                            </div>
                            <div className="flex-1 overflow-y-auto p-4">
@@ -590,7 +628,6 @@ const App: React.FC = () => {
                                 testCases={testCases}
                                 onToggleSavePrompt={handleToggleSavePrompt}
                                 isPromptSaved={isPromptSaved}
-                                language={language}
                              />
                            </div>
                         </div>
@@ -598,7 +635,7 @@ const App: React.FC = () => {
                         {/* Right Panel: Final Result */}
                         <div className="flex-1 flex flex-col border-r border-gray-200">
                              <div className="p-3 border-b border-gray-200 bg-gray-100">
-                                <h2 className="text-lg font-semibold text-gray-800">{t.result.title}</h2>
+                                <h2 className="text-lg font-semibold text-gray-800">{t('result.title')}</h2>
                              </div>
                              <div className="flex-1 overflow-y-auto p-4">
                                 {renderFinalResult()}
@@ -611,7 +648,6 @@ const App: React.FC = () => {
                                 prompts={savedPrompts}
                                 onLoad={handleLoadPrompt}
                                 onDelete={handleDeletePrompt}
-                                language={language}
                             />
                         </div>
                     </div>
@@ -652,14 +688,13 @@ const App: React.FC = () => {
                                 diversificationType={diversificationType}
                                 onToggleSavePrompt={handleToggleSavePrompt}
                                 isPromptSaved={isPromptSaved}
-                                language={language}
                             />
                         </div>
                     )}
                      {activeView === 'process' && (
                         <div className="flex flex-col h-full">
                             <div className="p-3 border-b border-gray-200 bg-gray-100 sticky top-0 z-10">
-                                <h2 className="text-lg font-semibold text-gray-800">{t.process.title}</h2>
+                                <h2 className="text-lg font-semibold text-gray-800">{t('process.title')}</h2>
                                 <p className={`text-sm mt-1 ${isLoading ? 'text-cyan-600 animate-pulse' : 'text-gray-500'}`}>{status}</p>
                             </div>
                             <div className="p-4">
@@ -668,7 +703,6 @@ const App: React.FC = () => {
                                     testCases={testCases}
                                     onToggleSavePrompt={handleToggleSavePrompt}
                                     isPromptSaved={isPromptSaved}
-                                    language={language}
                                 />
                             </div>
                         </div>
@@ -676,7 +710,7 @@ const App: React.FC = () => {
                     {activeView === 'result' && (
                         <div className="flex flex-col h-full">
                             <div className="p-3 border-b border-gray-200 bg-gray-100 sticky top-0 z-10">
-                                <h2 className="text-lg font-semibold text-gray-800">{t.result.title}</h2>
+                                <h2 className="text-lg font-semibold text-gray-800">{t('result.title')}</h2>
                             </div>
                             <div className="p-4">
                                 {renderFinalResult()}
@@ -689,13 +723,12 @@ const App: React.FC = () => {
                                 prompts={savedPrompts}
                                 onLoad={handleLoadPrompt}
                                 onDelete={handleDeletePrompt}
-                                language={language}
                             />
                         </div>
                     )}
                 </div>
             </main>
-            <MobileNav activeView={activeView} onViewChange={setActiveView} language={language} />
+            <MobileNav activeView={activeView} onViewChange={setActiveView} />
         </div>
     );
 };

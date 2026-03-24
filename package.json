@@ -17,12 +17,14 @@
     "@inkjs/ui": "^2.0.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "i18next": "^25.10.5",
     "ink": "^6.8.0",
     "ink-select-input": "^6.2.0",
     "ink-text-input": "^6.0.0",
     "mime-types": "^2.1.35",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-i18next": "^16.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -40,11 +40,15 @@ export interface RefinedPromptResult {
   reasoning: string;
 }
 
+export type SavedPromptSource = 'initialPrompt' | 'finalResult' | 'attempt' | 'legacy';
+
 export interface SavedPrompt {
   id: string;
   prompt: string;
   savedAt: string; // ISO string date
-  source: string; // "Initial Prompt", "Final Result", "Attempt #2"
+  source: SavedPromptSource;
+  sourceAttempt?: number;
+  sourceLabel?: string;
   details?: string; // "Passed 3/3 tests"
   testCases: TestCase[];
 }
