@@ -3,18 +3,23 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "bin": {
+    "autotuner": "./bin/autotuner.js"
+  },
   "scripts": {
     "dev": "concurrently \"vite\" \"tsx watch server/index.ts\"",
     "dev:client": "vite",
     "dev:server": "tsx server/index.ts",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node bin/autotuner.js"
   },
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "mime-types": "^2.1.35"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

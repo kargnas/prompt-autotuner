@@ -18,7 +18,18 @@ Three files do most of the work.
 
 ## Quick start
 
-Requires [pnpm](https://pnpm.io/) and an [OpenRouter](https://openrouter.ai) API key.
+Requires an [OpenRouter](https://openrouter.ai) API key.
+
+**Option 1 — npx (no install)**
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+npx prompt-autotuner
+```
+
+Opens at `http://localhost:3000`.
+
+**Option 2 — dev mode (with hot reload)**
 
 ```bash
 git clone https://github.com/kargnas/prompt-autotuner
@@ -27,8 +38,6 @@ pnpm install
 export OPENROUTER_API_KEY=sk-or-...
 pnpm dev
 ```
-
-Open `http://localhost:3000`.
 
 ## Project structure
 
