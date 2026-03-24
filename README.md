@@ -1,6 +1,6 @@
 # autotuner
 
-![cost comparison](04-cost-v3.png)
+<img width="2048" height="1143" alt="image" src="https://github.com/user-attachments/assets/83d5ee96-fad4-4a41-b781-4fbaea4d82fb" />
 
 *Prompt engineering is fundamentally repetitive experimentation. You look at the output, tweak the prompt, run it again — by hand, every time. autotuner hands that loop off to an LLM. Register a few test cases and it analyzes, revises, and repeats until everything passes.*
 
