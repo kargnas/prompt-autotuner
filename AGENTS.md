@@ -40,13 +40,29 @@ pnpm dev          # Vite :3000 + Express :3001
 - **Build**: `pnpm build` — must exit 0
 - **GitHub Actions CI matrix**: lint/build runs on Node.js `20`, `22`, `24`, and `latest`
 
-### Environment Variables
-Only one required secret:
-| Variable | Required | Description |
-|---|---|---|
-| `OPENROUTER_API_KEY` | Yes | OpenRouter API key for LLM proxy |
-| `PORT` | No | Express API server port (default: 3001) — Vite port is hardcoded in `vite.config.ts` |
-| `API_PORT` | No | CLI only — used by `bin/autotuner.js` to set Express port at startup |
+### Configuration System
+
+All configuration follows a unified priority chain: **`.env` → `~/.autotuner/config.yaml` → defaults**
+
+| `.env` Variable | `config.yaml` Key | Required | Default | Description |
+|---|---|---|---|---|
+| `OPENROUTER_API_KEY` | `openrouterApiKey` | Yes | — | OpenRouter API key for LLM proxy |
+| `PORT` | `port` | No | `3000` | Static/proxy server port (CLI mode) |
+| `API_PORT` | `apiPort` | No | `3001` | Express API server port |
+| `AUTOTUNER_DIR` | — | No | `~/.autotuner` | Data directory for config and saved prompts |
+| `STORAGE_BACKEND` | `storageBackend` | No | `file` | Saved prompts backend: `file` or `localstorage` |
+
+**Example `~/.autotuner/config.yaml`** (for npx users without a local `.env`):
+```yaml
+openrouterApiKey: sk-or-...
+storageBackend: file
+```
+
+**Storage backends:**
+- `file` (default) — each saved prompt is a YAML file under `~/.autotuner/saved-prompts/{id}.yaml`. Persists across browsers/machines.
+- `localstorage` — browser localStorage only. Falls back automatically if the file API is unreachable.
+
+**Migration:** Legacy `~/.autotuner/config.json` is auto-migrated to `config.yaml` on first load. Legacy `saved-prompts.json` single file is auto-migrated to the `saved-prompts/` directory. localStorage saved prompts are auto-migrated to file storage on first load.
 
 > See `README.ai-ready.md` for AI agent-specific setup guide and Codex Cloud instructions.
 
@@ -83,10 +99,13 @@ prompt-autotuner/
 ├── scripts/
 │   └── bump-version.mjs  # Shared semver bump script used by GitHub Actions
 ├── server/
-│   └── index.ts          # Express API proxy — holds OPENROUTER_API_KEY server-side
+│   ├── index.ts          # Express API — LLM proxy + saved prompts storage API
+│   ├── config.ts         # Unified config loader (.env → config.yaml → defaults)
+│   └── storage.ts        # File-based saved prompts CRUD (~/.autotuner/saved-prompts/{id}.yaml)
 ├── services/
 │   ├── llmService.ts     # Core: runPrompt, evaluateOutput, diversifyTestCases, refinePrompt
-│   └── contentService.ts # Prompt engineering guides (embedded as string constants)
+│   ├── contentService.ts # Prompt engineering guides (embedded as string constants)
+│   └── storageService.ts # Frontend storage abstraction (file API → localStorage fallback)
 ├── App.tsx               # Root component — session state, eval-refine orchestration
 ├── constants.ts          # Model list, default prompts, localStorage keys
 ├── translations.ts       # i18n strings (en/ko)
@@ -101,7 +120,7 @@ prompt-autotuner/
 - **Separate generation and evaluation models**: A fast model generates output; a more capable model evaluates it. Both configurable via UI.
 - **Server-side API key**: Express on :3001 holds the OpenRouter key. Vite proxies `/api/*` to it. Key never enters the frontend bundle.
 - **LLM-based semantic evaluation**: No string matching. The evaluator judges semantic equivalence and produces reasoning traces that drive refinement.
-- **No database**: All state lives in browser `localStorage`. No external services needed.
+- **No database**: Saved prompts stored in `~/.autotuner/saved-prompts/{id}.yaml` (file) with localStorage fallback. Session data still in localStorage.
 - **Tailwind via CDN**: `index.html` loads Tailwind from CDN script tag, not as a build dependency.
 
 ## Coding Rules
@@ -132,7 +151,7 @@ prompt-autotuner/
 
 ### API & Service Layer
 - All LLM calls go through `services/llmService.ts` → `callLLM()` → `/api/chat` → Express → OpenRouter
-- Express server (`server/index.ts`) is a thin proxy — no business logic
+- Express server (`server/index.ts`) is a thin proxy for LLM calls + CRUD API for saved prompts storage
 - Model names follow OpenRouter format: `provider/model-name` (e.g. `google/gemini-2.5-flash`)
 - JSON responses expected from LLM calls use `response_format: { type: 'json_object' }`
 

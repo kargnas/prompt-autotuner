@@ -9,8 +9,9 @@ import SavedPromptsPanel from './components/SavedPromptsPanel';
 import MobileNav from './components/MobileNav';
 import { runPrompt, refinePrompt, diversifyTestCases, evaluateOutput } from './services/llmService';
 import type { RefinementAttempt, TestCase, TestCaseResult, SavedPrompt, SavedPromptSource, Variable } from './types';
-import { DEFAULT_PROMPT_RULE, DEFAULT_PROMPT, getDefaultTestCases, LOCAL_STORAGE_KEY, SAVED_PROMPTS_LOCAL_STORAGE_KEY, DEFAULT_GENERATION_MODEL, DEFAULT_EVALUATION_MODEL, AVAILABLE_MODELS } from './constants';
+import { DEFAULT_PROMPT_RULE, DEFAULT_PROMPT, getDefaultTestCases, LOCAL_STORAGE_KEY, DEFAULT_GENERATION_MODEL, DEFAULT_EVALUATION_MODEL, AVAILABLE_MODELS } from './constants';
 import { getPromptGuide, getXmlPromptingGuide } from './services/contentService';
+import { loadSavedPrompts, saveSavedPrompts, migrateLocalStorageToFile } from './services/storageService';
 import CodeBlock from './components/CodeBlock';
 import BookmarkIcon from './components/icons/BookmarkIcon';
 import BookmarkSolidIcon from './components/icons/BookmarkSolidIcon';
@@ -151,7 +152,6 @@ const App: React.FC = () => {
         initializeSettings();
     }, []);
     
-    // Load session data and saved prompts from localStorage on initial mount
     useEffect(() => {
         try {
             const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -164,17 +164,16 @@ const App: React.FC = () => {
                      setTestCases(parsedData.testCases.map(tc => ({...tc, id: tc.id || crypto.randomUUID() })));
                 }
             }
-            
-            const savedPromptsData = localStorage.getItem(SAVED_PROMPTS_LOCAL_STORAGE_KEY);
-            if (savedPromptsData) {
-                const normalizedPrompts = (JSON.parse(savedPromptsData) as LegacySavedPrompt[]).map(normalizeSavedPrompt);
-                setSavedPrompts(normalizedPrompts);
-                localStorage.setItem(SAVED_PROMPTS_LOCAL_STORAGE_KEY, JSON.stringify(normalizedPrompts));
-            }
-
         } catch (e) {
             console.error("Failed to load session data from localStorage", e);
         }
+
+        migrateLocalStorageToFile().then(() => {
+            loadSavedPrompts().then(prompts => {
+                const normalizedPrompts = (prompts as unknown as LegacySavedPrompt[]).map(normalizeSavedPrompt);
+                setSavedPrompts(normalizedPrompts);
+            }).catch(e => console.error('Failed to load saved prompts', e));
+        }).catch(e => console.error('Migration failed', e));
     }, []);
 
     // Save session data to localStorage whenever it changes
@@ -192,11 +191,9 @@ const App: React.FC = () => {
 
     const updateSavedPrompts = (newPrompts: SavedPrompt[]) => {
         setSavedPrompts(newPrompts);
-        try {
-            localStorage.setItem(SAVED_PROMPTS_LOCAL_STORAGE_KEY, JSON.stringify(newPrompts));
-        } catch (e) {
-            console.error("Failed to save prompts to localStorage", e);
-        }
+        saveSavedPrompts(newPrompts).catch(e => {
+            console.error("Failed to persist saved prompts", e);
+        });
     };
 
     const isPromptSaved = (promptText: string): boolean => {
