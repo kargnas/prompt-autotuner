@@ -56,7 +56,24 @@ if (needsBuild) {
   }
 }
 
-const tsxBin = path.join(ROOT, 'node_modules', '.bin', 'tsx');
+// npm/npx hoists deps to a parent node_modules, so walk up to find tsx
+function findBin(name) {
+  let dir = ROOT;
+  while (true) {
+    const bin = path.join(dir, 'node_modules', '.bin', name);
+    if (fs.existsSync(bin)) return bin;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+const tsxBin = findBin('tsx');
+if (!tsxBin) {
+  console.error('❌  tsx not found. Run: npm install tsx');
+  process.exit(1);
+}
 const apiServer = spawn(tsxBin, [path.join(ROOT, 'server', 'index.ts')], {
   env: { ...process.env, API_PORT: String(API_PORT), OPENROUTER_API_KEY: apiKey },
   stdio: 'inherit',
