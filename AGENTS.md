@@ -34,8 +34,8 @@ pnpm dev          # Vite :3000 + Express :3001
 | `pnpm start` | Run CLI entry point (`bin/autotuner.js`) |
 
 ### Build & Verify
-- **Type check**: `npx tsc --noEmit` — must pass with 0 errors
-- **Lint**: `npx eslint .` — warnings acceptable, errors must be fixed
+- **Type check**: `pnpm exec tsc --noEmit` — must pass with 0 errors
+- **Lint**: `pnpm exec eslint .` — warnings acceptable, errors must be fixed
 - **Build**: `pnpm build` — must exit 0
 
 ### Environment Variables
@@ -43,8 +43,8 @@ Only one required secret:
 | Variable | Required | Description |
 |---|---|---|
 | `OPENROUTER_API_KEY` | Yes | OpenRouter API key for LLM proxy |
-| `PORT` | No | Vite dev server port (default: 3000) |
-| `API_PORT` | No | Express API port (default: 3001) |
+| `PORT` | No | Express API server port (default: 3001) — Vite port is hardcoded in `vite.config.ts` |
+| `API_PORT` | No | CLI only — used by `bin/autotuner.js` to set Express port at startup |
 
 > See `README.ai-ready.md` for AI agent-specific setup guide and Codex Cloud instructions.
 
@@ -94,7 +94,7 @@ prompt-autotuner/
 
 ### Code Quality: Always verify before commit
 - Run `git status` after completing work — ensure no unnecessary files or debug code remain
-- Run `npx tsc --noEmit` and `pnpm build` before every commit
+- Run `pnpm exec tsc --noEmit` and `pnpm build` before every commit
 - Write human-readable code. Use descriptive variable names. Comment only the "why", not the "what".
 - Delete dead code confidently — git preserves history
 

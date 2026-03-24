@@ -37,13 +37,13 @@ Opens at `http://localhost:3000`.
 ```bash
 git clone https://github.com/kargnas/prompt-autotuner
 cd prompt-autotuner
-cp -n .env.example .env
+cp -n .env.example .env     # For human devs (.env.ai-ready for AI agents)
 # Set OPENROUTER_API_KEY in .env
 pnpm install
 pnpm dev
 ```
 
-> 🤖 **AI agent?** See [`README.ai-ready.md`](README.ai-ready.md) for Codex Cloud and agentic coding setup.
+> 🤖 **AI agent?** Use `.env.ai-ready` instead — see [`README.ai-ready.md`](README.ai-ready.md) for Codex Cloud and agentic coding setup.
 
 ## Tech stack
 
@@ -97,8 +97,8 @@ Standard files follow Vite + React conventions. Run `tree -I 'node_modules|dist|
 ## Verification
 
 ```bash
-npx tsc --noEmit    # Type check — must pass
-npx eslint .        # Lint
+pnpm exec tsc --noEmit    # Type check — must pass
+pnpm exec eslint .        # Lint
 pnpm build          # Build — must exit 0
 ```
 

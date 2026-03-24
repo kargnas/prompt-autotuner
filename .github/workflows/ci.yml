@@ -29,10 +29,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: TypeScript type check
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
 
       - name: ESLint
-        run: npx eslint . --max-warnings=50
+        run: pnpm exec eslint . --max-warnings=50
 
       - name: Build
         run: pnpm build
