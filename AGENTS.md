@@ -38,6 +38,7 @@ pnpm dev          # Vite :3000 + Express :3001
 - **Type check**: `pnpm exec tsc --noEmit` — must pass with 0 errors
 - **Lint**: `pnpm exec eslint .` — warnings acceptable, errors must be fixed
 - **Build**: `pnpm build` — must exit 0
+- **GitHub Actions CI matrix**: lint/build runs on Node.js `20`, `22`, `24`, and `latest`
 
 ### Environment Variables
 Only one required secret:
