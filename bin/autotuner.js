@@ -7,7 +7,8 @@ import fs from 'fs';
 import http from 'http';
 import { lookup as mimeLookup } from 'mime-types';
 import { createReadStream } from 'fs';
-import { resolveApiKey, CONFIG_PATH } from './resolve-key.js';
+import { resolveApiKey, loadConfig, CONFIG_PATH } from './resolve-key.js';
+import { resolvePort } from './port-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -17,16 +18,35 @@ const getArg = (flag, def) => {
   const idx = args.indexOf(flag);
   return idx !== -1 ? parseInt(args[idx + 1]) : def;
 };
-const PORT = getArg('--port', 3000);
-const API_PORT = getArg('--api-port', 3001);
 
-function execSafe(cmd) {
-  try { return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' }).trim(); } catch { return ''; }
-}
+// ── Port resolution ──────────────────────────────────────────────────────────
+// "Explicit" = user intentionally chose this port via CLI flag, env var, or config.yaml.
+// Explicit ports that are occupied → error + exit.
+// Non-explicit (default) ports that are occupied → auto-find alternative.
+
+const yamlConfig = loadConfig();
+
+const portExplicit = args.includes('--port') || !!process.env.PORT || yamlConfig.port !== undefined;
+const apiPortExplicit = args.includes('--api-port') || !!process.env.API_PORT || yamlConfig.apiPort !== undefined;
+
+const preferredPort = getArg('--port',
+  process.env.PORT ? parseInt(process.env.PORT) :
+  yamlConfig.port ?? 3000);
+const preferredApiPort = getArg('--api-port',
+  process.env.API_PORT ? parseInt(process.env.API_PORT) :
+  yamlConfig.apiPort ?? 3001);
+
+// Resolve API port first, then frontend port (excluding the claimed API port)
+const API_PORT = await resolvePort(preferredApiPort, apiPortExplicit, 'API_PORT');
+const PORT = await resolvePort(preferredPort, portExplicit, 'PORT', [API_PORT]);
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 const apiKey = await resolveApiKey();
+
+function execSafe(cmd) {
+  try { return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' }).trim(); } catch { return ''; }
+}
 
 const nodeModules = path.join(ROOT, 'node_modules');
 if (!fs.existsSync(nodeModules)) {
@@ -74,8 +94,15 @@ if (!tsxBin) {
   console.error('❌  tsx not found. Run: npm install tsx');
   process.exit(1);
 }
+
+// Port is pre-resolved — tell the server not to retry on its own
 const apiServer = spawn(tsxBin, [path.join(ROOT, 'server', 'index.ts')], {
-  env: { ...process.env, API_PORT: String(API_PORT), OPENROUTER_API_KEY: apiKey },
+  env: {
+    ...process.env,
+    API_PORT: String(API_PORT),
+    OPENROUTER_API_KEY: apiKey,
+    _PORT_PRERESOLVED: '1',
+  },
   stdio: 'inherit',
 });
 apiServer.on('error', (err) => {
@@ -115,6 +142,15 @@ staticServer.listen(PORT, () => {
   console.log(`\n✅  autotuner → http://localhost:${PORT}`);
   console.log(`    API server on port ${API_PORT}`);
   console.log(`    Config: ${CONFIG_PATH}\n`);
+});
+staticServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌  Port ${PORT} became unavailable. Exiting.`);
+  } else {
+    console.error('❌  Failed to start static server:', err.message);
+  }
+  apiServer.kill();
+  process.exit(1);
 });
 
 const shutdown = () => { apiServer.kill(); staticServer.close(); process.exit(0); };
