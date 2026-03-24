@@ -112,6 +112,7 @@ const App: React.FC = () => {
     const [negativePromptRule, setNegativePromptRule] = useState<string>(DEFAULT_PROMPT_RULE);
     
     const abortControllerRef = useRef<AbortController | null>(null);
+    const refinementRunIdRef = useRef(0);
     const status = statusState?.type === 'translation'
         ? t(statusState.key, statusState.values)
         : statusState?.message ?? '';
@@ -382,24 +383,52 @@ const App: React.FC = () => {
                 }))
             }));
             setTestCases(prev => [...prev, ...newTestCases]);
-        } catch (err: any) {
-            setError(t('process.diversifyFailedError', { error: err.message }));
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : t('common.unknownError');
+            setError(t('process.diversifyFailedError', { error: errorMessage }));
         } finally {
             setIsDiversifying(false);
             setDiversificationType(null);
         }
     }, [testCases, diversificationDirection, evaluationModel, t]);
 
-    const handleCancel = () => {
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            setTranslatedStatus('process.cancelled');
+    const handleCancel = useCallback(() => {
+        const controller = abortControllerRef.current;
+        if (!controller) {
+            return;
         }
-    };
+
+        refinementRunIdRef.current += 1;
+        abortControllerRef.current = null;
+        controller.abort();
+        setError(t('process.cancelled'));
+        setTranslatedStatus('process.cancelled');
+        setIsLoading(false);
+    }, [setTranslatedStatus, t]);
 
     const handleRefine = useCallback(async () => {
-        abortControllerRef.current = new AbortController();
-        const signal = abortControllerRef.current.signal;
+        const runId = refinementRunIdRef.current + 1;
+        refinementRunIdRef.current = runId;
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        const signal = controller.signal;
+
+        const ensureRunIsActive = () => {
+            if (signal.aborted || refinementRunIdRef.current !== runId) {
+                throw new DOMException('Aborted', 'AbortError');
+            }
+        };
+
+        const finishRun = () => {
+            if (refinementRunIdRef.current !== runId) {
+                return false;
+            }
+
+            abortControllerRef.current = null;
+            setIsLoading(false);
+            return true;
+        };
 
         setIsLoading(true);
         setTranslatedStatus('process.starting');
@@ -410,7 +439,7 @@ const App: React.FC = () => {
 
         if (testCases.length === 0 || testCases.some(tc => tc.variables.some(v => !v.key.trim() || !v.value.trim()) || !tc.expectedOutput.trim())) {
             setError(t('process.startValidationError'));
-            setIsLoading(false);
+            finishRun();
             return;
         }
 
@@ -419,7 +448,7 @@ const App: React.FC = () => {
         let lastReasoning: string | undefined = undefined;
 
         for (let i = 0; i < maxAttempts; i++) {
-            if (signal.aborted) return;
+            ensureRunIsActive();
             
             const attempt = i + 1;
             setTranslatedStatus('process.testing', { attempt, max: maxAttempts, count: testCases.length });
@@ -439,7 +468,7 @@ const App: React.FC = () => {
             setHistory(cumulativeHistory);
 
             try {
-                if (signal.aborted) return;
+                ensureRunIsActive();
                 
                 setTranslatedStatus('process.running', { attempt, max: maxAttempts, count: testCases.length });
 
@@ -461,7 +490,7 @@ const App: React.FC = () => {
                 
                 const results = await Promise.all(testPromises);
 
-                if (signal.aborted) return;
+                ensureRunIsActive();
 
                 const passedCount = results.filter(r => r.status === 'passed').length;
                 const allPassed = passedCount === testCases.length;
@@ -478,9 +507,11 @@ const App: React.FC = () => {
                 setHistory([...cumulativeHistory]);
 
                 if (allPassed) {
+                    if (!finishRun()) {
+                        return;
+                    }
                     setTranslatedStatus('process.success', { count: testCases.length });
                     setFinalPrompt(currentPrompt);
-                    setIsLoading(false);
                     setActiveView('result'); // Switch to result view on mobile
                     return;
                 }
@@ -512,6 +543,7 @@ const App: React.FC = () => {
                             evaluationModel,
                             signal
                         );
+                        ensureRunIsActive();
                         currentPrompt = refinedResult.newPrompt;
                         lastReasoning = refinedResult.reasoning;
                     } else {
@@ -519,25 +551,32 @@ const App: React.FC = () => {
                     }
                 }
 
-            } catch (err: any) {
-                if (err.name === 'AbortError') {
+            } catch (err: unknown) {
+                if (err instanceof DOMException && err.name === 'AbortError') {
+                    if (!finishRun()) {
+                        return;
+                    }
                     setError(t('process.cancelled'));
                     setTranslatedStatus('process.cancelled');
-                    setIsLoading(false);
                     return;
                 }
-                const errorMessage = t('process.error', { attempt, error: err.message });
+                if (!finishRun()) {
+                    return;
+                }
+                const detail = err instanceof Error ? err.message : t('common.unknownError');
+                const errorMessage = t('process.error', { attempt, error: detail });
                 setError(errorMessage);
                 setRawStatus(errorMessage);
-                setIsLoading(false);
                 setActiveView('result'); // Switch to result view on error
                 return;
             }
         }
 
+        if (!finishRun()) {
+            return;
+        }
         setError(t('process.fail', { max: maxAttempts }));
         setTranslatedStatus('process.finished');
-        setIsLoading(false);
         setActiveView('result');
 
     }, [testCases, promptGuide, negativePromptRule, initialPrompt, generationModel, evaluationModel, refinementDirection, maxAttempts, setRawStatus, setTranslatedStatus, t]);

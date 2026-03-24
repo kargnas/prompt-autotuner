@@ -15,6 +15,7 @@ export const resources = {
         removeTestCase: "Remove test case",
         diversificationHintAria: "Diversification hint",
         closeSettings: "Close settings",
+        unknownError: "Unknown error",
       },
       header: {
         title: "Auto Tuner",
@@ -151,6 +152,7 @@ export const resources = {
         removeTestCase: "테스트 케이스 삭제",
         diversificationHintAria: "테스트 케이스 생성 힌트",
         closeSettings: "설정 닫기",
+        unknownError: "알 수 없는 오류",
       },
       header: {
         title: "Auto Tuner",
@@ -287,6 +289,7 @@ export const resources = {
         removeTestCase: "删除测试用例",
         diversificationHintAria: "测试用例扩展提示",
         closeSettings: "关闭设置",
+        unknownError: "未知错误",
       },
       header: {
         title: "Auto Tuner",
@@ -423,6 +426,7 @@ export const resources = {
         removeTestCase: "刪除測試案例",
         diversificationHintAria: "測試案例擴充提示",
         closeSettings: "關閉設定",
+        unknownError: "未知錯誤",
       },
       header: {
         title: "Auto Tuner",
