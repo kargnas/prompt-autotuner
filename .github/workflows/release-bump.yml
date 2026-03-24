@@ -15,6 +15,8 @@ jobs:
   release-bump:
     if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip release]')
     runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.bump.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,3 +58,13 @@ jobs:
           git commit -m "chore: release ${RELEASE_TAG} [skip ci]"
           git tag -a "${RELEASE_TAG}" -m "Release ${RELEASE_TAG}"
           git push origin HEAD:main "${RELEASE_TAG}"
+
+  publish-release:
+    needs: release-bump
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      tag_name: ${{ needs.release-bump.outputs.release_tag }}
+    secrets: inherit
