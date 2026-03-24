@@ -16,6 +16,16 @@ if (!config.openrouterApiKey) {
 
 app.post('/api/chat', async (req, res) => {
   const { model, messages, temperature, response_format } = req.body;
+  const upstreamController = new AbortController();
+  const abortUpstream = () => {
+    if (!upstreamController.signal.aborted) {
+      upstreamController.abort();
+    }
+  };
+
+  req.on('aborted', abortUpstream);
+  req.on('close', abortUpstream);
+  res.on('close', abortUpstream);
 
   try {
     const body: Record<string, unknown> = { model, messages };
@@ -31,6 +41,7 @@ app.post('/api/chat', async (req, res) => {
         'X-Title': 'Auto Tuner',
       },
       body: JSON.stringify(body),
+      signal: upstreamController.signal,
     });
 
     if (!response.ok) {
@@ -42,8 +53,15 @@ app.post('/api/chat', async (req, res) => {
     const data = await response.json();
     res.json(data);
   } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return;
+    }
     console.error('LLM call failed:', error);
     res.status(500).json({ error: 'LLM call failed' });
+  } finally {
+    req.off('aborted', abortUpstream);
+    req.off('close', abortUpstream);
+    res.off('close', abortUpstream);
   }
 });
 

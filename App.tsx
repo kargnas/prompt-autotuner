@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import Header from './components/Header';
 import PromptInputForm from './components/PromptInputForm';
@@ -400,10 +401,12 @@ const App: React.FC = () => {
 
         refinementRunIdRef.current += 1;
         abortControllerRef.current = null;
+        flushSync(() => {
+            setError(t('process.cancelled'));
+            setTranslatedStatus('process.cancelled');
+            setIsLoading(false);
+        });
         controller.abort();
-        setError(t('process.cancelled'));
-        setTranslatedStatus('process.cancelled');
-        setIsLoading(false);
     }, [setTranslatedStatus, t]);
 
     const handleRefine = useCallback(async () => {

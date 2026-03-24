@@ -341,24 +341,33 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
         </div>
       </div>
 
-      {isLoading ? (
-        <button
-          type="button"
-          onClick={onCancel}
-          className="w-full flex justify-center items-center py-2 px-3 border border-transparent shadow-sm text-xs font-medium text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-red-500"
-        >
-          <XCircleIcon className="w-4 h-4 mr-1.5"/>
-          {t('inputForm.cancel')}
-        </button>
-      ) : (
-        <button
-          type="submit"
-          disabled={isDiversifying}
-          className="w-full flex justify-center items-center py-2 px-3 border border-transparent shadow-sm text-xs font-medium text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-cyan-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          {t('inputForm.startRefining')}
-        </button>
-      )}
+      <button
+        key={isLoading ? 'cancel-button' : 'submit-button'}
+        type={isLoading ? 'button' : 'submit'}
+        onClick={(e) => {
+          if (!isLoading) {
+            return;
+          }
+
+          e.preventDefault();
+          onCancel();
+        }}
+        disabled={!isLoading && isDiversifying}
+        className={`w-full flex justify-center items-center py-2 px-3 border border-transparent shadow-sm text-xs font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white ${
+          isLoading
+            ? 'bg-red-500 hover:bg-red-600 focus:ring-red-500'
+            : 'bg-cyan-600 hover:bg-cyan-700 focus:ring-cyan-500 disabled:bg-gray-300 disabled:cursor-not-allowed'
+        }`}
+      >
+        {isLoading ? (
+          <>
+            <XCircleIcon className="w-4 h-4 mr-1.5" />
+            {t('inputForm.cancel')}
+          </>
+        ) : (
+          t('inputForm.startRefining')
+        )}
+      </button>
     </form>
   );
 };
