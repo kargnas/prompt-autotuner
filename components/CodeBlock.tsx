@@ -12,14 +12,14 @@ const CodeBlock: React.FC<{ content: string }> = ({ content }) => {
     };
 
     return (
-        <pre className="bg-gray-100 p-2.5 text-xs text-gray-800 relative overflow-x-auto whitespace-pre-wrap">
+        <pre className="bg-gray-100 p-2 text-[11px] text-gray-800 relative overflow-x-auto whitespace-pre-wrap">
             <code>{content}</code>
             <button
                 onClick={handleCopy}
-                className="absolute top-1.5 right-1.5 p-1 bg-gray-200 hover:bg-gray-300 text-gray-600 transition-colors"
+                className="absolute top-1 right-1 p-0.5 bg-gray-200 hover:bg-gray-300 text-gray-600 transition-colors"
                 aria-label={t('common.copyToClipboard')}
             >
-                {copied ? <span className="text-xs px-1">{t('common.copied')}</span> : <ClipboardIcon className="w-3.5 h-3.5" />}
+                {copied ? <span className="text-[11px] px-1">{t('common.copied')}</span> : <ClipboardIcon className="w-3 h-3" />}
             </button>
         </pre>
     );

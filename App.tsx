@@ -546,16 +546,16 @@ const App: React.FC = () => {
         <>
             {isLoading && !finalPrompt && !error && (
                 <div className="flex items-center justify-center h-full text-gray-400">
-                    <p>{t('process.waiting')}</p>
+                    <p className="text-xs">{t('process.waiting')}</p>
                 </div>
             )}
-            {error && <div className="p-4 bg-red-50 border border-red-300 text-red-700">{error}</div>}
+            {error && <div className="p-3 text-xs bg-red-50 border border-red-300 text-red-700">{error}</div>}
             {finalPrompt && (() => {
                 const isSaved = isPromptSaved(finalPrompt);
                 return (
-                    <div className="p-4 bg-green-50 border border-green-300">
-                        <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-lg font-bold text-green-700">{t('result.successTitle')}</h3>
+                    <div className="p-3 bg-green-50 border border-green-300">
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-sm font-bold text-green-700">{t('result.successTitle')}</h3>
                             <button
                                 onClick={() => handleToggleSavePrompt({
                                     prompt: finalPrompt,
@@ -563,11 +563,11 @@ const App: React.FC = () => {
                                     details: t('process.details', { passed: testCases.length, total: testCases.length }),
                                     testCases: testCases,
                                 })}
-                                className={`p-1.5 transition-colors ${isSaved ? 'text-cyan-600' : 'text-gray-500 hover:bg-green-100 hover:text-cyan-600'}`}
+                                className={`p-1 transition-colors ${isSaved ? 'text-cyan-600' : 'text-gray-500 hover:bg-green-100 hover:text-cyan-600'}`}
                                 aria-label={isSaved ? t('result.unsaveFinal') : t('result.saveFinal')}
                                 aria-pressed={isSaved}
                             >
-                                {isSaved ? <BookmarkSolidIcon className="w-5 h-5" /> : <BookmarkIcon className="w-5 h-5" />}
+                                {isSaved ? <BookmarkSolidIcon className="w-4 h-4" /> : <BookmarkIcon className="w-4 h-4" />}
                             </button>
                         </div>
                         <CodeBlock content={finalPrompt} />
@@ -576,7 +576,7 @@ const App: React.FC = () => {
             })()}
             {!isLoading && !finalPrompt && !error && (
                  <div className="flex items-center justify-center h-full text-gray-400">
-                    <p>{t('inputForm.finalPrompt')}</p>
+                    <p className="text-xs">{t('inputForm.finalPrompt')}</p>
                 </div>
             )}
         </>
@@ -600,7 +600,7 @@ const App: React.FC = () => {
                 {/* --- Desktop View --- */}
                 <div className="hidden md:flex w-full overflow-hidden">
                     {/* Left Panel: Configuration */}
-                    <div className="w-1/3 flex flex-col p-4 border-r border-gray-200 overflow-hidden">
+                    <div className="w-[29%] max-w-[24rem] min-w-[18rem] flex flex-col p-3 border-r border-gray-200 overflow-hidden">
                         <PromptInputForm 
                             onSubmit={handleRefine}
                             onCancel={handleCancel}
@@ -635,14 +635,14 @@ const App: React.FC = () => {
                         />
                     </div>
                     
-                    <div className="w-2/3 flex overflow-hidden">
+                    <div className="flex-1 min-w-0 flex overflow-hidden">
                         {/* Center Panel: Process Log */}
                         <div className="flex-1 flex flex-col border-r border-gray-200">
-                           <div className="p-3 border-b border-gray-200 bg-gray-100">
-                             <h2 className="text-lg font-semibold text-gray-800">{t('process.title')}</h2>
-                             <p className={`text-sm mt-1 ${isLoading ? 'text-cyan-600 animate-pulse' : 'text-gray-500'}`}>{status}</p>
+                           <div className="p-2.5 border-b border-gray-200 bg-gray-100">
+                             <h2 className="text-sm font-semibold text-gray-800">{t('process.title')}</h2>
+                             <p className={`text-xs mt-0.5 ${isLoading ? 'text-cyan-600 animate-pulse' : 'text-gray-500'}`}>{status}</p>
                            </div>
-                           <div className="flex-1 overflow-y-auto p-4">
+                           <div className="flex-1 overflow-y-auto p-3">
                              <RefinementDisplay 
                                 history={history}
                                 testCases={testCases}
@@ -654,10 +654,10 @@ const App: React.FC = () => {
 
                         {/* Right Panel: Final Result */}
                         <div className="flex-1 flex flex-col border-r border-gray-200">
-                             <div className="p-3 border-b border-gray-200 bg-gray-100">
-                                <h2 className="text-lg font-semibold text-gray-800">{t('result.title')}</h2>
+                             <div className="p-2.5 border-b border-gray-200 bg-gray-100">
+                                <h2 className="text-sm font-semibold text-gray-800">{t('result.title')}</h2>
                              </div>
-                             <div className="flex-1 overflow-y-auto p-4">
+                             <div className="flex-1 overflow-y-auto p-3">
                                 {renderFinalResult()}
                              </div>
                         </div>
@@ -676,7 +676,7 @@ const App: React.FC = () => {
                 {/* --- Mobile View --- */}
                 <div className="md:hidden flex-1 overflow-y-auto pb-16">
                     {activeView === 'setup' && (
-                        <div className="p-4">
+                        <div className="p-3">
                              <PromptInputForm 
                                 onSubmit={handleRefine}
                                 onCancel={handleCancel}
@@ -713,11 +713,11 @@ const App: React.FC = () => {
                     )}
                      {activeView === 'process' && (
                         <div className="flex flex-col h-full">
-                            <div className="p-3 border-b border-gray-200 bg-gray-100 sticky top-0 z-10">
-                                <h2 className="text-lg font-semibold text-gray-800">{t('process.title')}</h2>
-                                <p className={`text-sm mt-1 ${isLoading ? 'text-cyan-600 animate-pulse' : 'text-gray-500'}`}>{status}</p>
+                            <div className="p-2.5 border-b border-gray-200 bg-gray-100 sticky top-0 z-10">
+                                <h2 className="text-sm font-semibold text-gray-800">{t('process.title')}</h2>
+                                <p className={`text-xs mt-0.5 ${isLoading ? 'text-cyan-600 animate-pulse' : 'text-gray-500'}`}>{status}</p>
                             </div>
-                            <div className="p-4">
+                            <div className="p-3">
                                 <RefinementDisplay 
                                     history={history}
                                     testCases={testCases}
@@ -729,10 +729,10 @@ const App: React.FC = () => {
                     )}
                     {activeView === 'result' && (
                         <div className="flex flex-col h-full">
-                            <div className="p-3 border-b border-gray-200 bg-gray-100 sticky top-0 z-10">
-                                <h2 className="text-lg font-semibold text-gray-800">{t('result.title')}</h2>
+                            <div className="p-2.5 border-b border-gray-200 bg-gray-100 sticky top-0 z-10">
+                                <h2 className="text-sm font-semibold text-gray-800">{t('result.title')}</h2>
                             </div>
-                            <div className="p-4">
+                            <div className="p-3">
                                 {renderFinalResult()}
                             </div>
                         </div>

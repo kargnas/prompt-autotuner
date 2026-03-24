@@ -47,21 +47,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       aria-labelledby="settings-title"
     >
       <div 
-        className="bg-white shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh] border border-gray-200"
+        className="bg-white shadow-xl w-full max-w-xl flex flex-col max-h-[90vh] border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 id="settings-title" className="text-lg font-semibold text-gray-900">
+        <header className="flex items-center justify-between p-3 border-b border-gray-200">
+          <h2 id="settings-title" className="text-sm font-semibold text-gray-900">
             {t('settings.title')}
           </h2>
           <button onClick={onClose} className="p-1 text-gray-500 hover:bg-gray-100" aria-label={t('common.closeSettings')}>
-            <XCircleIcon className="w-6 h-6" />
+            <XCircleIcon className="w-5 h-5" />
           </button>
         </header>
         
-        <main className="p-6 space-y-6 overflow-y-auto">
+        <main className="p-3 space-y-4 overflow-y-auto">
           <div>
-            <label htmlFor="prompt-guide" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="prompt-guide" className="block text-xs font-medium text-gray-700 mb-1.5">
               {t('settings.guideLabel')}
             </label>
             <textarea
@@ -69,37 +69,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               value={guide}
               onChange={(e) => setGuide(e.target.value)}
               rows={15}
-              className="w-full p-2 bg-gray-50 border border-gray-300 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all text-sm text-gray-900 placeholder-gray-400 font-mono"
+              className="w-full p-1.5 bg-gray-50 border border-gray-300 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all text-xs text-gray-900 placeholder-gray-400 font-mono"
               aria-describedby="prompt-guide-description"
             />
-            <p id="prompt-guide-description" className="mt-2 text-xs text-gray-500">
+            <p id="prompt-guide-description" className="mt-1.5 text-[11px] text-gray-500">
               {t('settings.guideDesc')}
             </p>
           </div>
 
           <div>
-            <label htmlFor="refinement-rule" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="refinement-rule" className="block text-xs font-medium text-gray-700 mb-1.5">
                 {t('settings.strategyLabel')}
             </label>
-            <div className="flex space-x-2 mb-2">
+            <div className="flex space-x-1.5 mb-1.5">
                 <button
                     type="button"
                     onClick={() => setNegativeRule(NO_FEW_SHOT_RULE)}
-                    className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-400"
+                    className="px-2 py-1 text-[11px] font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-400"
                 >
                     {t('settings.forbidFewShot')}
                 </button>
                 <button
                     type="button"
                     onClick={() => setNegativeRule(POSITIVE_FEW_SHOT_RULE)}
-                    className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-400"
+                    className="px-2 py-1 text-[11px] font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-400"
                 >
                     {t('settings.allowPositive')}
                 </button>
                  <button
                     type="button"
                     onClick={() => setNegativeRule(PERMISSIVE_FEW_SHOT_RULE)}
-                    className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-400"
+                    className="px-2 py-1 text-[11px] font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-400"
                 >
                     {t('settings.allowPermissive')}
                 </button>
@@ -109,25 +109,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 value={negativeRule}
                 onChange={(e) => setNegativeRule(e.target.value)}
                 rows={4}
-                className="w-full p-2 bg-gray-50 border border-gray-300 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all text-sm text-gray-900 placeholder-gray-400 font-mono"
+                className="w-full p-1.5 bg-gray-50 border border-gray-300 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all text-xs text-gray-900 placeholder-gray-400 font-mono"
                 aria-describedby="refinement-rule-description"
             />
-            <p id="refinement-rule-description" className="mt-2 text-xs text-gray-500">
+            <p id="refinement-rule-description" className="mt-1.5 text-[11px] text-gray-500">
                 {t('settings.strategyDesc')}
             </p>
           </div>
         </main>
         
-        <footer className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
+        <footer className="flex items-center justify-between p-3 border-t border-gray-200 bg-gray-50">
           <button
             onClick={onRestoreDefaults}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-400"
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-400"
           >
             {t('settings.restoreDefaults')}
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-cyan-500"
+            className="px-3 py-1.5 text-xs font-medium text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-cyan-500"
           >
             {t('settings.saveClose')}
           </button>

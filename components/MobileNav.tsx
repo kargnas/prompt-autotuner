@@ -24,11 +24,11 @@ const NavButton: React.FC<{
     return (
         <button
             onClick={onClick}
-            className={`flex-1 flex flex-col items-center justify-center p-2 text-xs transition-colors ${isActive ? activeClasses : inactiveClasses}`}
+            className={`flex-1 flex flex-col items-center justify-center p-1.5 text-[11px] transition-colors ${isActive ? activeClasses : inactiveClasses}`}
             aria-current={isActive ? 'page' : undefined}
         >
             {icon}
-            <span className="mt-1">{label}</span>
+            <span className="mt-0.5">{label}</span>
         </button>
     );
 };
@@ -40,25 +40,25 @@ const MobileNav: React.FC<MobileNavProps> = ({ activeView, onViewChange }) => {
       <NavButton
         isActive={activeView === 'setup'}
         onClick={() => onViewChange('setup')}
-        icon={<CodeBracketIcon className="w-5 h-5" />}
+        icon={<CodeBracketIcon className="w-4 h-4" />}
         label={t('nav.setup')}
       />
       <NavButton
         isActive={activeView === 'process'}
         onClick={() => onViewChange('process')}
-        icon={<ListBulletIcon className="w-5 h-5" />}
+        icon={<ListBulletIcon className="w-4 h-4" />}
         label={t('nav.process')}
       />
       <NavButton
         isActive={activeView === 'result'}
         onClick={() => onViewChange('result')}
-        icon={<SparklesIcon className="w-5 h-5" />}
+        icon={<SparklesIcon className="w-4 h-4" />}
         label={t('nav.result')}
       />
        <NavButton
         isActive={activeView === 'saved'}
         onClick={() => onViewChange('saved')}
-        icon={<BookmarkIcon className="w-5 h-5" />}
+        icon={<BookmarkIcon className="w-4 h-4" />}
         label={t('nav.saved')}
       />
     </nav>

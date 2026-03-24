@@ -20,7 +20,7 @@ const SavedPromptCard: React.FC<SavedPromptCardProps> = ({ promptData, onLoad, o
     const sourceLabel = getSavedPromptSourceLabel(promptData, t);
 
     return (
-        <div className="p-3 bg-white border border-gray-200 space-y-2">
+        <div className="p-2.5 bg-white border border-gray-200 space-y-1.5">
             <div className="space-y-1">
                 <p className="text-xs text-gray-500">
                     <span className="font-semibold text-gray-600">{t('saved.source')}</span> {sourceLabel}
@@ -35,21 +35,21 @@ const SavedPromptCard: React.FC<SavedPromptCardProps> = ({ promptData, onLoad, o
                 </p>
             </div>
             <CodeBlock content={promptData.prompt} />
-            <div className="flex items-center justify-end space-x-2 pt-1">
+            <div className="flex items-center justify-end space-x-1.5 pt-1">
                  <button 
                     onClick={() => onDelete(promptData.id)}
-                    className="flex items-center space-x-1.5 px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                    className="flex items-center space-x-1 px-1.5 py-0.5 text-[11px] font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
                     aria-label={t('saved.deleteAria', { savedAt })}
                 >
-                    <TrashIcon className="w-3.5 h-3.5" />
+                    <TrashIcon className="w-3 h-3" />
                     <span>{t('saved.delete')}</span>
                 </button>
                 <button 
                     onClick={() => onLoad(promptData)}
-                    className="flex items-center space-x-1.5 px-2 py-1 text-xs font-medium text-cyan-600 bg-cyan-50 hover:bg-cyan-100 transition-colors"
+                    className="flex items-center space-x-1 px-1.5 py-0.5 text-[11px] font-medium text-cyan-600 bg-cyan-50 hover:bg-cyan-100 transition-colors"
                     aria-label={t('saved.loadAria', { savedAt })}
                 >
-                    <ArrowPathIcon className="w-3.5 h-3.5" />
+                    <ArrowPathIcon className="w-3 h-3" />
                     <span>{t('saved.load')}</span>
                 </button>
             </div>
@@ -68,10 +68,10 @@ const SavedPromptsPanel: React.FC<SavedPromptsPanelProps> = ({ prompts, onLoad, 
     const { t } = useTranslation();
     return (
         <>
-            <div className="p-3 border-b border-gray-200 bg-gray-100">
-                <h2 className="text-lg font-semibold text-gray-800">{t('saved.title')}</h2>
+            <div className="p-2.5 border-b border-gray-200 bg-gray-100">
+                <h2 className="text-sm font-semibold text-gray-800">{t('saved.title')}</h2>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
                 {prompts.length > 0 ? (
                     prompts.map(p => (
                         <SavedPromptCard 
