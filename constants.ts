@@ -1,13 +1,14 @@
 
 import type { Variable } from './types';
 
-export const DEFAULT_GENERATION_MODEL = 'google/gemini-2.5-flash';
-export const DEFAULT_EVALUATION_MODEL = 'google/gemini-2.5-pro';
+export const DEFAULT_GENERATION_MODEL = 'google/gemini-3.1-flash-lite-preview';
+export const DEFAULT_EVALUATION_MODEL = 'google/gemini-3.1-pro-preview';
 export const AVAILABLE_MODELS = [
+  'google/gemini-3.1-pro-preview',
+  'google/gemini-3.1-flash-lite-preview',
+  'google/gemini-3-flash-preview',
   'google/gemini-2.5-pro',
   'google/gemini-2.5-flash',
-  'google/gemini-3-pro-preview',
-  'google/gemini-3-flash-preview',
   'openai/gpt-4.1',
   'openai/gpt-4.1-mini',
   'anthropic/claude-sonnet-4-5',
