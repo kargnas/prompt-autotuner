@@ -6,7 +6,7 @@
     "autotuner": "bin/autotuner.js"
   },
   "scripts": {
-    "dev": "concurrently \"vite\" \"tsx watch server/index.ts\"",
+    "dev": "node bin/dev.js",
     "dev:client": "vite",
     "dev:server": "tsx server/index.ts",
     "build": "vite build",
