@@ -125,8 +125,12 @@ export function resolveConfig(): AppConfig {
   const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
   const envApiPort = process.env.API_PORT ? parseInt(process.env.API_PORT, 10) : undefined;
 
-  const portExplicit = envPort !== undefined || yamlCfg.port !== undefined;
-  const apiPortExplicit = envApiPort !== undefined || yamlCfg.apiPort !== undefined;
+  // When launched from bin/autotuner.js or bin/dev.js, ports are pre-resolved
+  // by the parent process. Treat as explicit so the server doesn't retry on EADDRINUSE.
+  const preresolved = process.env._PORT_PRERESOLVED === '1';
+
+  const portExplicit = preresolved || envPort !== undefined || yamlCfg.port !== undefined;
+  const apiPortExplicit = preresolved || envApiPort !== undefined || yamlCfg.apiPort !== undefined;
 
   return {
     openrouterApiKey:

@@ -98,7 +98,10 @@ function listen(port: number, attempt = 0): void {
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
       if (config.apiPortExplicit) {
-        console.error(`Port ${port} is in use. Since API_PORT is explicitly configured, not retrying.`);
+        const reason = process.env._PORT_PRERESOLVED === '1'
+          ? `Port ${port} became unavailable after pre-resolution (race condition).`
+          : `Port ${port} is in use and API_PORT is explicitly configured.`;
+        console.error(reason);
         process.exit(1);
       }
       if (attempt < MAX_PORT_RETRIES) {
