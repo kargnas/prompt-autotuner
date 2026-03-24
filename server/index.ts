@@ -76,8 +76,8 @@ app.put('/api/storage/prompts', (req, res) => {
       return res.status(400).json({ error: 'Invalid prompts array' });
     }
     for (const p of prompts) {
-      if (typeof p.id !== 'string' || !p.id) {
-        return res.status(400).json({ error: 'Each prompt must have a string id' });
+      if (typeof p.id !== 'string' || !p.id || !/^[\w-]+$/.test(p.id)) {
+        return res.status(400).json({ error: `Invalid prompt id: ${p.id}` });
       }
     }
     writeSavedPrompts(prompts);

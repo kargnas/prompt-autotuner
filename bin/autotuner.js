@@ -58,7 +58,7 @@ if (needsBuild) {
 
 const tsxBin = path.join(ROOT, 'node_modules', '.bin', 'tsx');
 const apiServer = spawn(tsxBin, [path.join(ROOT, 'server', 'index.ts')], {
-  env: { ...process.env, PORT: String(API_PORT), OPENROUTER_API_KEY: apiKey },
+  env: { ...process.env, API_PORT: String(API_PORT), OPENROUTER_API_KEY: apiKey },
   stdio: 'inherit',
 });
 apiServer.on('error', (err) => {
