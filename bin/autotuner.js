@@ -89,6 +89,19 @@ async function resolveApiKey() {
 
 const apiKey = await resolveApiKey();
 
+// Install dependencies if node_modules missing
+const nodeModules = path.join(ROOT, 'node_modules');
+if (!fs.existsSync(nodeModules)) {
+  console.log('📦  Installing dependencies...');
+  const installCmd = fs.existsSync(path.join(ROOT, 'pnpm-lock.yaml')) ? 'pnpm install' : 'npm install';
+  try {
+    execSync(installCmd, { cwd: ROOT, stdio: 'inherit' });
+  } catch {
+    console.error('❌  Install failed. Check your network connection.');
+    process.exit(1);
+  }
+}
+
 // Build if needed
 const distDir = path.join(ROOT, 'dist');
 const needsBuild =
@@ -96,13 +109,18 @@ const needsBuild =
 
 if (needsBuild) {
   console.log('📦  Building frontend...');
-  const buildCmd = fs.existsSync(path.join(ROOT, 'pnpm-lock.yaml')) ? 'pnpm build' : 'npm run build';
+  const usePnpm = fs.existsSync(path.join(ROOT, 'pnpm-lock.yaml')) && !!execSafe('which pnpm');
+  const buildCmd = usePnpm ? 'pnpm build' : 'npm run build';
   try {
     execSync(buildCmd, { cwd: ROOT, stdio: 'inherit' });
   } catch {
-    console.error('❌  Build failed. Run `pnpm install` first.');
+    console.error('❌  Build failed.');
     process.exit(1);
   }
+}
+
+function execSafe(cmd) {
+  try { return execSync(cmd, { encoding: 'utf8', stdio: 'pipe' }).trim(); } catch { return ''; }
 }
 
 // Start API server (Express via tsx)
