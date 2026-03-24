@@ -43,15 +43,15 @@ const normalizeSavedPromptSource = (savedPrompt: LegacySavedPrompt): Pick<SavedP
 
     const source = savedPrompt.source ?? '';
 
-    if (source === 'Initial Prompt' || source === '초기 프롬프트' || source === '初始提示词') {
+    if (source === 'Initial Prompt' || source === '초기 프롬프트' || source === '初始提示词' || source === '初始提示詞') {
         return { source: 'initialPrompt' };
     }
 
-    if (source === 'Final Result' || source === '최종 결과' || source === '最终结果') {
+    if (source === 'Final Result' || source === '최종 결과' || source === '最终结果' || source === '最終結果') {
         return { source: 'finalResult' };
     }
 
-    const attemptMatch = source.match(/(?:Attempt|시도|尝试)\s*#?\s*(\d+)/i);
+    const attemptMatch = source.match(/(?:Attempt|시도|尝试|嘗試)\s*#?\s*(\d+)/i);
     if (attemptMatch) {
         return {
             source: 'attempt',
