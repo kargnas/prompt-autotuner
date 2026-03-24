@@ -1,22 +1,45 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import yaml from 'js-yaml';
 
 const CONFIG_DIR = path.join(os.homedir(), '.autotuner');
-const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
+const CONFIG_YAML_PATH = path.join(CONFIG_DIR, 'config.yaml');
+const CONFIG_JSON_PATH = path.join(CONFIG_DIR, 'config.json');
 
-export { CONFIG_PATH };
+export { CONFIG_YAML_PATH as CONFIG_PATH };
+
+function migrateJsonToYaml() {
+  if (!fs.existsSync(CONFIG_JSON_PATH)) return;
+  if (fs.existsSync(CONFIG_YAML_PATH)) {
+    try { fs.unlinkSync(CONFIG_JSON_PATH); } catch { /* already migrated */ }
+    return;
+  }
+
+  try {
+    const json = JSON.parse(fs.readFileSync(CONFIG_JSON_PATH, 'utf8'));
+    const yamlConfig = {};
+    if (json.openrouterApiKey) yamlConfig.openrouterApiKey = json.openrouterApiKey;
+
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    fs.writeFileSync(CONFIG_YAML_PATH, yaml.dump(yamlConfig, { lineWidth: 120 }), 'utf8');
+    fs.unlinkSync(CONFIG_JSON_PATH);
+    console.log(`✅  Migrated ${CONFIG_JSON_PATH} → ${CONFIG_YAML_PATH}`);
+  } catch { /* non-fatal */ }
+}
 
 export function loadConfig() {
-  if (fs.existsSync(CONFIG_PATH)) {
-    try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch { return {}; }
-  }
-  return {};
+  migrateJsonToYaml();
+  if (!fs.existsSync(CONFIG_YAML_PATH)) return {};
+  try {
+    const parsed = yaml.load(fs.readFileSync(CONFIG_YAML_PATH, 'utf8'));
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch { return {}; }
 }
 
 export function saveConfig(config) {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+  fs.writeFileSync(CONFIG_YAML_PATH, yaml.dump(config, { lineWidth: 120, noRefs: true }), 'utf8');
 }
 
 export function findEnvKey() {
@@ -28,7 +51,7 @@ export function findEnvKey() {
   return null;
 }
 
-// Resolve API key: env var → ~/.autotuner/config.json → interactive Ink prompt
+// Priority: env var → ~/.autotuner/config.yaml → interactive Ink prompt
 export async function resolveApiKey() {
   const envMatch = findEnvKey();
   if (envMatch) {
@@ -53,7 +76,7 @@ export async function resolveApiKey() {
 
   config.openrouterApiKey = key;
   saveConfig(config);
-  console.log(`✅  Saved to ${CONFIG_PATH}\n`);
+  console.log(`✅  Saved to ${CONFIG_YAML_PATH}\n`);
 
   return key;
 }
