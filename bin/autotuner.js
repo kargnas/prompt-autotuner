@@ -10,6 +10,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import http from 'http';
+import os from 'os';
+import readline from 'readline';
 import { lookup as mimeLookup } from 'mime-types';
 import { createReadStream } from 'fs';
 
@@ -25,13 +27,65 @@ const getArg = (flag, def) => {
 const PORT = getArg('--port', 3000);
 const API_PORT = getArg('--api-port', 3001);
 
-// Check API key
-if (!process.env.OPENROUTER_API_KEY) {
-  console.error('\n❌  OPENROUTER_API_KEY is not set.');
-  console.error('    Export it first:\n');
-  console.error('    export OPENROUTER_API_KEY=sk-or-...\n');
-  process.exit(1);
+// Config file
+const CONFIG_DIR = path.join(os.homedir(), '.autotuner');
+const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
+
+function loadConfig() {
+  if (fs.existsSync(CONFIG_PATH)) {
+    try {
+      return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    } catch {
+      return {};
+    }
+  }
+  return {};
 }
+
+function saveConfig(config) {
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+}
+
+function prompt(question) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+// Resolve API key: env → config file → interactive prompt
+async function resolveApiKey() {
+  if (process.env.OPENROUTER_API_KEY) {
+    return process.env.OPENROUTER_API_KEY;
+  }
+
+  const config = loadConfig();
+  if (config.openrouterApiKey) {
+    return config.openrouterApiKey;
+  }
+
+  console.log('\n🔑  OpenRouter API key not found.');
+  console.log('    Get one at https://openrouter.ai\n');
+  const key = await prompt('    Enter your OPENROUTER_API_KEY: ');
+
+  if (!key) {
+    console.error('\n❌  No API key provided. Exiting.\n');
+    process.exit(1);
+  }
+
+  config.openrouterApiKey = key;
+  saveConfig(config);
+  console.log(`    ✅  Saved to ${CONFIG_PATH}\n`);
+
+  return key;
+}
+
+// Resolve API key first
+const apiKey = await resolveApiKey();
 
 // Build if needed
 const distDir = path.join(ROOT, 'dist');
@@ -54,7 +108,7 @@ if (needsBuild) {
 // Start API server (Express via tsx)
 const tsxBin = path.join(ROOT, 'node_modules', '.bin', 'tsx');
 const apiServer = spawn(tsxBin, [path.join(ROOT, 'server', 'index.ts')], {
-  env: { ...process.env, PORT: String(API_PORT) },
+  env: { ...process.env, PORT: String(API_PORT), OPENROUTER_API_KEY: apiKey },
   stdio: 'inherit',
 });
 
@@ -97,8 +151,9 @@ const staticServer = http.createServer((req, res) => {
 });
 
 staticServer.listen(PORT, () => {
-  console.log(`\n✅  autotuner is running at http://localhost:${PORT}`);
-  console.log(`    API server on port ${API_PORT}\n`);
+  console.log(`✅  autotuner is running at http://localhost:${PORT}`);
+  console.log(`    API server on port ${API_PORT}`);
+  console.log(`    Config: ${CONFIG_PATH}\n`);
 });
 
 const shutdown = () => {
