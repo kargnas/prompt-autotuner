@@ -4,17 +4,18 @@ import type { SavedPrompt } from '../types';
 import CodeBlock from './CodeBlock';
 import TrashIcon from './icons/TrashIcon';
 import ArrowPathIcon from './icons/ArrowPathIcon';
-import { translations } from '../translations';
+import { translations, type Language } from '../translations';
 
 interface SavedPromptCardProps {
     promptData: SavedPrompt;
     onLoad: (prompt: SavedPrompt) => void;
     onDelete: (id: string) => void;
-    language: 'en' | 'ko';
+    language: Language;
 }
 
 const SavedPromptCard: React.FC<SavedPromptCardProps> = ({ promptData, onLoad, onDelete, language }) => {
     const t = translations[language].saved;
+    const savedAt = new Date(promptData.savedAt).toLocaleString(language);
 
     return (
         <div className="p-3 bg-white border border-gray-200 space-y-2">
@@ -28,15 +29,15 @@ const SavedPromptCard: React.FC<SavedPromptCardProps> = ({ promptData, onLoad, o
                     </p>
                 )}
                 <p className="text-xs text-gray-400">
-                    {t.savedOn} {new Date(promptData.savedAt).toLocaleString()}
+                    {t.savedOn} {savedAt}
                 </p>
             </div>
-            <CodeBlock content={promptData.prompt} />
+            <CodeBlock content={promptData.prompt} language={language} />
             <div className="flex items-center justify-end space-x-2 pt-1">
                  <button 
                     onClick={() => onDelete(promptData.id)}
                     className="flex items-center space-x-1.5 px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
-                    aria-label={`${t.delete} prompt saved on ${new Date(promptData.savedAt).toLocaleString()}`}
+                    aria-label={t.deleteAria.replace('{{savedAt}}', savedAt)}
                 >
                     <TrashIcon className="w-3.5 h-3.5" />
                     <span>{t.delete}</span>
@@ -44,7 +45,7 @@ const SavedPromptCard: React.FC<SavedPromptCardProps> = ({ promptData, onLoad, o
                 <button 
                     onClick={() => onLoad(promptData)}
                     className="flex items-center space-x-1.5 px-2 py-1 text-xs font-medium text-cyan-600 bg-cyan-50 hover:bg-cyan-100 transition-colors"
-                    aria-label={`${t.load} prompt saved on ${new Date(promptData.savedAt).toLocaleString()}`}
+                    aria-label={t.loadAria.replace('{{savedAt}}', savedAt)}
                 >
                     <ArrowPathIcon className="w-3.5 h-3.5" />
                     <span>{t.load}</span>
@@ -59,7 +60,7 @@ interface SavedPromptsPanelProps {
     prompts: SavedPrompt[];
     onLoad: (prompt: SavedPrompt) => void;
     onDelete: (id: string) => void;
-    language: 'en' | 'ko';
+    language: Language;
 }
 
 const SavedPromptsPanel: React.FC<SavedPromptsPanelProps> = ({ prompts, onLoad, onDelete, language }) => {

@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import ClipboardIcon from './icons/ClipboardIcon';
+import { translations, type Language } from '../translations';
 
-const CodeBlock: React.FC<{ content: string }> = ({ content }) => {
+interface CodeBlockProps {
+    content: string;
+    language: Language;
+}
+
+const CodeBlock: React.FC<CodeBlockProps> = ({ content, language }) => {
     const [copied, setCopied] = useState(false);
+    const t = translations[language].common;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(content);
@@ -16,9 +23,9 @@ const CodeBlock: React.FC<{ content: string }> = ({ content }) => {
             <button
                 onClick={handleCopy}
                 className="absolute top-1.5 right-1.5 p-1 bg-gray-200 hover:bg-gray-300 text-gray-600 transition-colors"
-                aria-label="Copy to clipboard"
+                aria-label={t.copyToClipboard}
             >
-                {copied ? <span className="text-xs px-1">Copied!</span> : <ClipboardIcon className="w-3.5 h-3.5" />}
+                {copied ? <span className="text-xs px-1">{t.copied}</span> : <ClipboardIcon className="w-3.5 h-3.5" />}
             </button>
         </pre>
     );

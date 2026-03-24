@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import XCircleIcon from './icons/XCircleIcon';
 import { NO_FEW_SHOT_RULE, POSITIVE_FEW_SHOT_RULE, PERMISSIVE_FEW_SHOT_RULE } from '../constants';
-import { translations } from '../translations';
+import { translations, type Language } from '../translations';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface SettingsModalProps {
   currentNegativeRule: string;
   onSave: (guide: string, negativeRule: string) => void;
   onRestoreDefaults: () => void;
-  language: 'en' | 'ko';
+  language: Language;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -56,7 +56,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <h2 id="settings-title" className="text-lg font-semibold text-gray-900">
             {t.title}
           </h2>
-          <button onClick={onClose} className="p-1 text-gray-500 hover:bg-gray-100" aria-label="Close settings">
+          <button onClick={onClose} className="p-1 text-gray-500 hover:bg-gray-100" aria-label={translations[language].common.closeSettings}>
             <XCircleIcon className="w-6 h-6" />
           </button>
         </header>

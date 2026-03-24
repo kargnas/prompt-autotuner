@@ -3,13 +3,19 @@ import React from 'react';
 import SparklesIcon from './icons/SparklesIcon';
 import GearIcon from './icons/GearIcon';
 import ArrowPathIcon from './icons/ArrowPathIcon';
-import { translations } from '../translations';
+import { translations, type Language } from '../translations';
+
+const LANGUAGE_OPTIONS: Array<{ code: Language; label: string }> = [
+  { code: 'en', label: 'EN' },
+  { code: 'ko', label: 'KO' },
+  { code: 'zh-CN', label: 'ZH' },
+];
 
 interface HeaderProps {
   onOpenSettings: () => void;
   onReset: () => void;
-  language: 'en' | 'ko';
-  onLanguageChange: (lang: 'en' | 'ko') => void;
+  language: Language;
+  onLanguageChange: (lang: Language) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onOpenSettings, onReset, language, onLanguageChange }) => {
@@ -31,18 +37,15 @@ const Header: React.FC<HeaderProps> = ({ onOpenSettings, onReset, language, onLa
       {/* Buttons container: right-aligned */}
       <div className="flex items-center justify-end md:flex-1 space-x-2">
         <div className="flex bg-gray-100 rounded-md p-0.5 border border-gray-200">
-            <button 
-                onClick={() => onLanguageChange('en')}
-                className={`px-2 py-1 text-xs font-medium rounded ${language === 'en' ? 'bg-white shadow-sm text-cyan-700' : 'text-gray-500 hover:text-gray-900'}`}
+          {LANGUAGE_OPTIONS.map(({ code, label }) => (
+            <button
+              key={code}
+              onClick={() => onLanguageChange(code)}
+              className={`px-2 py-1 text-xs font-medium rounded ${language === code ? 'bg-white shadow-sm text-cyan-700' : 'text-gray-500 hover:text-gray-900'}`}
             >
-                EN
+              {label}
             </button>
-            <button 
-                 onClick={() => onLanguageChange('ko')}
-                 className={`px-2 py-1 text-xs font-medium rounded ${language === 'ko' ? 'bg-white shadow-sm text-cyan-700' : 'text-gray-500 hover:text-gray-900'}`}
-            >
-                KO
-            </button>
+          ))}
         </div>
 
         <button 

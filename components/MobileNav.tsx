@@ -4,14 +4,14 @@ import CodeBracketIcon from './icons/CodeBracketIcon';
 import ListBulletIcon from './icons/ListBulletIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import BookmarkIcon from './icons/BookmarkIcon';
-import { translations } from '../translations';
+import { translations, type Language } from '../translations';
 
 type View = 'setup' | 'process' | 'result' | 'saved';
 
 interface MobileNavProps {
   activeView: View;
   onViewChange: (view: View) => void;
-  language: 'en' | 'ko';
+  language: Language;
 }
 
 const NavButton: React.FC<{

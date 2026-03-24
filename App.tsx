@@ -13,15 +13,34 @@ import { getPromptGuide, getXmlPromptingGuide } from './services/contentService'
 import CodeBlock from './components/CodeBlock';
 import BookmarkIcon from './components/icons/BookmarkIcon';
 import BookmarkSolidIcon from './components/icons/BookmarkSolidIcon';
-import { translations } from './translations';
+import { DEFAULT_LANGUAGE, translations, type Language } from './translations';
 
 interface StoredSessionData {
     initialPrompt: string;
     testCases: TestCase[];
 }
 
+const LANGUAGE_STORAGE_KEY = 'gemini-tuner-language';
+
+const isSupportedLanguage = (value: string): value is Language => value in translations;
+
 const App: React.FC = () => {
-    const [language, setLanguage] = useState<'en' | 'ko'>('en');
+    const [language, setLanguage] = useState<Language>(() => {
+        if (typeof window === 'undefined') {
+            return DEFAULT_LANGUAGE;
+        }
+
+        try {
+            const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+            if (savedLanguage && isSupportedLanguage(savedLanguage)) {
+                return savedLanguage;
+            }
+        } catch (e) {
+            console.error("Failed to load language from localStorage", e);
+        }
+
+        return DEFAULT_LANGUAGE;
+    });
     const [initialPrompt, setInitialPrompt] = useState<string>(DEFAULT_PROMPT);
     const [refinementDirection, setRefinementDirection] = useState<string>('');
     const [generationModel, setGenerationModel] = useState<string>(DEFAULT_GENERATION_MODEL);
@@ -48,14 +67,13 @@ const App: React.FC = () => {
     const t = translations[language];
 
     useEffect(() => {
-        // Auto-detect language
-        const browserLang = navigator.language;
-        if (browserLang.startsWith('ko')) {
-            setLanguage('ko');
-        } else {
-            setLanguage('en');
+        document.documentElement.lang = language;
+        try {
+            localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+        } catch (e) {
+            console.error("Failed to save language to localStorage", e);
         }
-    }, []);
+    }, [language]);
 
     useEffect(() => {
         if (!isLoading && !status) {
@@ -282,15 +300,17 @@ const App: React.FC = () => {
     };
 
     const handleDiversify = useCallback(async (type: 'positive' | 'negative') => {
+        const currentT = translations[language];
+
         if (testCases.length === 0) {
-            setError("Please add at least one test case to use as a base for diversification.");
+            setError(currentT.process.diversifyNeedBaseError);
             return;
         }
 
         const firstCase = testCases[0];
         const firstCaseVars = variablesArrayToObject(firstCase.variables);
         if (Object.values(firstCaseVars).some(v => !v.trim()) || !firstCase.expectedOutput.trim()) {
-            setError("Please ensure the first test case is completely filled out before diversifying.");
+            setError(currentT.process.diversifyIncompleteBaseError);
             return;
         }
 
@@ -318,12 +338,12 @@ const App: React.FC = () => {
             }));
             setTestCases(prev => [...prev, ...newTestCases]);
         } catch (err: any) {
-            setError(`Failed to diversify test cases: ${err.message}`);
+            setError(currentT.process.diversifyFailedError.replace('{{error}}', err.message));
         } finally {
             setIsDiversifying(false);
             setDiversificationType(null);
         }
-    }, [testCases, diversificationDirection, evaluationModel]);
+    }, [testCases, diversificationDirection, evaluationModel, language]);
 
     const handleCancel = () => {
         if (abortControllerRef.current) {
@@ -347,7 +367,7 @@ const App: React.FC = () => {
         setActiveView('process'); // Switch to process view on mobile
 
         if (testCases.length === 0 || testCases.some(tc => tc.variables.some(v => !v.key.trim() || !v.value.trim()) || !tc.expectedOutput.trim())) {
-            setError("Please ensure all test cases have variables (both key and value) and a desired output filled in before starting.");
+            setError(currentT.process.startValidationError);
             setIsLoading(false);
             return;
         }
@@ -370,7 +390,7 @@ const App: React.FC = () => {
                 previousPrompt: previousAttempt?.prompt,
                 refinementReasoning: lastReasoning,
                 isSuccess: false,
-                details: `Running tests...`,
+                details: currentT.process.runningTests,
                 testCaseResults: [],
             };
             cumulativeHistory = [...cumulativeHistory, initialAttemptLog];
@@ -423,7 +443,7 @@ const App: React.FC = () => {
                     return;
                 }
 
-                setStatus(`Attempt ${attempt}/${maxAttempts}: ${details}`);
+                setStatus(currentT.process.attemptSummary.replace('{{attempt}}', String(attempt)).replace('{{max}}', String(maxAttempts)).replace('{{details}}', details));
                 
                 if (i < maxAttempts - 1) {
                     setStatus(currentT.process.refining.replace('{{attempt}}', String(attempt)).replace('{{max}}', String(maxAttempts)));
@@ -497,8 +517,8 @@ const App: React.FC = () => {
                             <button
                                 onClick={() => handleToggleSavePrompt({
                                     prompt: finalPrompt,
-                                    source: 'Final Result',
-                                    details: `Passed ${testCases.length}/${testCases.length} tests`,
+                                    source: t.saved.sourceFinalResult,
+                                    details: t.process.details.replace('{{passed}}', String(testCases.length)).replace('{{total}}', String(testCases.length)),
                                     testCases: testCases,
                                 })}
                                 className={`p-1.5 transition-colors ${isSaved ? 'text-cyan-600' : 'text-gray-500 hover:bg-green-100 hover:text-cyan-600'}`}
@@ -508,7 +528,7 @@ const App: React.FC = () => {
                                 {isSaved ? <BookmarkSolidIcon className="w-5 h-5" /> : <BookmarkIcon className="w-5 h-5" />}
                             </button>
                         </div>
-                        <CodeBlock content={finalPrompt} />
+                        <CodeBlock content={finalPrompt} language={language} />
                     </div>
                 );
             })()}

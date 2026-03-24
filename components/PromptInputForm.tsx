@@ -8,7 +8,7 @@ import XCircleIcon from './icons/XCircleIcon';
 import BookmarkIcon from './icons/BookmarkIcon';
 import BookmarkSolidIcon from './icons/BookmarkSolidIcon';
 import type { TestCase, SavedPrompt } from '../types';
-import { translations } from '../translations';
+import { translations, type Language } from '../translations';
 
 interface PromptInputFormProps {
   onSubmit: () => void;
@@ -41,7 +41,7 @@ interface PromptInputFormProps {
   diversificationType: 'positive' | 'negative' | null;
   onToggleSavePrompt: (data: Omit<SavedPrompt, 'id' | 'savedAt'>) => void;
   isPromptSaved: (promptText: string) => boolean;
-  language: 'en' | 'ko';
+  language: Language;
 }
 
 const Label: React.FC<{ htmlFor?: string; children: React.ReactNode }> = ({ htmlFor, children }) => (
@@ -98,12 +98,13 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
     language
 }) => {
   const t = translations[language].inputForm;
+  const c = translations[language].common;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return; // Prevent submission while loading
     if (testCases.length === 0) {
-        alert("Please add at least one test case.");
+        alert(t.minOneTestCaseAlert);
         return;
     }
     onSubmit();
@@ -117,8 +118,8 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
         <Label htmlFor="initial-prompt">
           <span>{t.initialPromptLabel}</span>
             <button 
-                type="button" 
-                onClick={() => onToggleSavePrompt({ prompt: initialPrompt, source: 'Initial Prompt', testCases })}
+                type="button"
+                onClick={() => onToggleSavePrompt({ prompt: initialPrompt, source: translations[language].saved.sourceInitialPrompt, testCases })}
                 disabled={isLoading}
                 className={`ml-auto p-1 transition-colors disabled:opacity-50 ${isInitialPromptSaved ? 'text-cyan-600' : 'text-gray-400 hover:text-cyan-600 hover:bg-gray-100'}`}
                 aria-label={isInitialPromptSaved ? t.unsaveInitial : t.saveInitial}
@@ -238,18 +239,18 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                                     <div className="flex items-center space-x-1.5">
                                         <Input
                                             type="text"
-                                            placeholder="key"
+                                            placeholder={c.variableKeyPlaceholder}
                                             value={variable.key}
                                             onChange={(e) => onVariableChange(tc.id, variable.id, 'key', e.target.value)}
                                             className="font-mono !text-xs"
                                             disabled={isLoading}
                                         />
-                                        <button type="button" onClick={() => onRemoveVariable(tc.id, variable.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 disabled:opacity-50 flex-shrink-0" aria-label="Remove variable" disabled={isLoading || tc.variables.length <= 1}>
+                                        <button type="button" onClick={() => onRemoveVariable(tc.id, variable.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 disabled:opacity-50 flex-shrink-0" aria-label={c.removeVariable} disabled={isLoading || tc.variables.length <= 1}>
                                             <TrashIcon className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                     <TextArea
-                                        placeholder="value"
+                                        placeholder={c.variableValuePlaceholder}
                                         value={variable.value}
                                         onChange={(e) => onVariableChange(tc.id, variable.id, 'value', e.target.value)}
                                         className="!text-xs"
@@ -298,7 +299,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                         </div>
                     </div>
                      {testCases.length > 0 && (
-                        <button type="button" onClick={() => onRemoveTestCase(tc.id)} className="absolute top-1.5 right-1.5 p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 disabled:opacity-50" aria-label="Remove test case" disabled={isLoading}>
+                        <button type="button" onClick={() => onRemoveTestCase(tc.id)} className="absolute top-1.5 right-1.5 p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 disabled:opacity-50" aria-label={c.removeTestCase} disabled={isLoading}>
                             <TrashIcon className="w-4 h-4" />
                         </button>
                     )}
@@ -335,7 +336,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({
                         value={diversificationDirection}
                         onChange={(e) => onDiversificationDirectionChange(e.target.value)}
                         disabled={isDiversifying || isLoading || testCases.length === 0}
-                        aria-label="Diversification hint"
+                        aria-label={c.diversificationHintAria}
                         className="!text-xs text-center"
                     />
                 </div>

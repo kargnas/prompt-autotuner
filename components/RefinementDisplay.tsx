@@ -4,7 +4,7 @@ import type { RefinementAttempt, TestCaseResult, SavedPrompt, TestCase } from '.
 import CodeBlock from './CodeBlock';
 import BookmarkIcon from './icons/BookmarkIcon';
 import BookmarkSolidIcon from './icons/BookmarkSolidIcon';
-import { translations } from '../translations';
+import { translations, type Language } from '../translations';
 
 const DiffViewer: React.FC<{ leftTitle: string; rightTitle: string; leftContent: string; rightContent: string; leftColor?: string; rightColor?: string; }> = ({ 
     leftTitle, 
@@ -40,11 +40,12 @@ const DiffViewer: React.FC<{ leftTitle: string; rightTitle: string; leftContent:
 }
 
 
-const TestCaseResultDisplay: React.FC<{ result: TestCaseResult; index: number; language: 'en' | 'ko' }> = ({ result, index, language }) => {
+const TestCaseResultDisplay: React.FC<{ result: TestCaseResult; index: number; language: Language }> = ({ result, index, language }) => {
     const isPassed = result.status === 'passed';
     const isNegative = result.testCase.type === 'negative';
     const t = translations[language].inputForm;
     const tProcess = translations[language].process;
+    const c = translations[language].common;
 
     const leftTitle = isNegative ? t.forbiddenOutput : t.desiredOutput;
     const leftColor = isNegative ? 'red' : 'green';
@@ -55,7 +56,7 @@ const TestCaseResultDisplay: React.FC<{ result: TestCaseResult; index: number; l
             <div className="flex items-center justify-between">
                 <span className="font-mono text-gray-500">{t.testCase} #{index + 1}</span>
                  <span className={`px-2 py-0.5 text-xs font-bold ${isPassed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {isPassed ? 'PASS' : 'FAIL'}
+                    {isPassed ? c.pass : c.fail}
                 </span>
             </div>
             {result.evaluationReasoning && (
@@ -67,7 +68,7 @@ const TestCaseResultDisplay: React.FC<{ result: TestCaseResult; index: number; l
             
             <DiffViewer 
                 leftTitle={leftTitle}
-                rightTitle="ACTUAL"
+                rightTitle={c.actual}
                 leftContent={result.testCase.expectedOutput}
                 rightContent={result.actualOutput}
                 leftColor={leftColor}
@@ -76,8 +77,8 @@ const TestCaseResultDisplay: React.FC<{ result: TestCaseResult; index: number; l
 
             {result.previousActualOutput && (
                 <DiffViewer 
-                    leftTitle="PREVIOUS OUTPUT"
-                    rightTitle="CURRENT OUTPUT"
+                    leftTitle={c.previousOutput}
+                    rightTitle={c.currentOutput}
                     leftContent={result.previousActualOutput}
                     rightContent={result.actualOutput}
                     leftColor="gray"
@@ -93,7 +94,7 @@ interface AttemptDetailsProps {
     testCases: TestCase[];
     onToggleSavePrompt: (data: Omit<SavedPrompt, 'id' | 'savedAt'>) => void;
     isPromptSaved: (promptText: string) => boolean;
-    language: 'en' | 'ko';
+    language: Language;
 }
 
 const AttemptDetails: React.FC<AttemptDetailsProps> = ({ attempt, testCases, onToggleSavePrompt, isPromptSaved, language }) => {
@@ -109,12 +110,12 @@ const AttemptDetails: React.FC<AttemptDetailsProps> = ({ attempt, testCases, onT
                     <button 
                         onClick={() => onToggleSavePrompt({
                             prompt: attempt.prompt,
-                            source: `Attempt #${attempt.attempt}`,
+                            source: translations[language].saved.sourceAttempt.replace('{{attempt}}', String(attempt.attempt)),
                             details: attempt.details,
                             testCases: testCases
                         })}
                         className={`p-1.5 transition-colors ${isSaved ? 'text-cyan-600' : 'text-gray-400 hover:text-cyan-600 hover:bg-gray-100'}`}
-                        aria-label={isSaved ? `Unsave prompt from attempt #${attempt.attempt}` : `Save prompt from attempt #${attempt.attempt}`}
+                        aria-label={(isSaved ? t.unsaveAttemptAria : t.saveAttemptAria).replace('{{attempt}}', String(attempt.attempt))}
                         aria-pressed={isSaved}
                     >
                         {isSaved ? <BookmarkSolidIcon className="w-5 h-5" /> : <BookmarkIcon className="w-5 h-5" />}
@@ -136,14 +137,14 @@ const AttemptDetails: React.FC<AttemptDetailsProps> = ({ attempt, testCases, onT
                 {attempt.previousPrompt && (
                     <div className="opacity-70">
                         <p className="text-xs font-semibold text-gray-500 mb-1">{t.prevPrompt} ({t.attempt} #{attempt.attempt - 1})</p>
-                        <CodeBlock content={attempt.previousPrompt} />
+                        <CodeBlock content={attempt.previousPrompt} language={language} />
                     </div>
                 )}
                 
                 <div>
                      <p className="text-xs font-semibold text-gray-800 mb-1">{attempt.previousPrompt ? `${t.refinedPrompt} (${t.attempt} #${attempt.attempt})` : t.initialPrompt}</p>
                      <div className="border border-cyan-500/50 shadow-lg shadow-cyan-500/10">
-                         <CodeBlock content={attempt.prompt} />
+                         <CodeBlock content={attempt.prompt} language={language} />
                      </div>
                 </div>
 
@@ -171,12 +172,12 @@ interface RefinementDisplayProps {
     testCases: TestCase[];
     onToggleSavePrompt: (data: Omit<SavedPrompt, 'id' | 'savedAt'>) => void;
     isPromptSaved: (promptText: string) => boolean;
-    language: 'en' | 'ko';
+    language: Language;
 }
 
 const RefinementDisplay: React.FC<RefinementDisplayProps> = ({ history, testCases, onToggleSavePrompt, isPromptSaved, language }) => {
     if (history.length === 0) {
-        return <div className="text-center text-gray-400 text-sm">{translations[language].saved.empty.replace('Saved prompts', 'Process log')}</div>;
+        return <div className="text-center text-gray-400 text-sm">{translations[language].process.logEmpty}</div>;
     }
 
     return (
