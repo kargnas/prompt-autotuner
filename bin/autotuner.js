@@ -11,7 +11,6 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import http from 'http';
 import os from 'os';
-import readline from 'readline';
 import { lookup as mimeLookup } from 'mime-types';
 import { createReadStream } from 'fs';
 
@@ -33,11 +32,7 @@ const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
 
 function loadConfig() {
   if (fs.existsSync(CONFIG_PATH)) {
-    try {
-      return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    } catch {
-      return {};
-    }
+    try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch { return {}; }
   }
   return {};
 }
@@ -47,30 +42,36 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
-function prompt(question) {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
+// Find any *OPENROUTER* env var (OPENROUTER_API_KEY, SYSTEM_OPENROUTER_API_KEY, etc.)
+function findEnvKey() {
+  for (const [k, v] of Object.entries(process.env)) {
+    if (k.toUpperCase().includes('OPENROUTER') && v && v.length > 8) {
+      return { name: k, value: v };
+    }
+  }
+  return null;
 }
 
-// Resolve API key: env → config file → interactive prompt
+// Resolve API key: any matching env var → config file → interactive Ink prompt
 async function resolveApiKey() {
-  if (process.env.OPENROUTER_API_KEY) {
-    return process.env.OPENROUTER_API_KEY;
+  // 1. Check any env var containing OPENROUTER
+  const envMatch = findEnvKey();
+  if (envMatch) {
+    if (envMatch.name !== 'OPENROUTER_API_KEY') {
+      console.log(`✅  Using ${envMatch.name} as API key`);
+    }
+    return envMatch.value;
   }
 
+  // 2. Config file
   const config = loadConfig();
   if (config.openrouterApiKey) {
     return config.openrouterApiKey;
   }
 
-  console.log('\n🔑  OpenRouter API key not found.');
-  console.log('    Get one at https://openrouter.ai\n');
-  const key = await prompt('    Enter your OPENROUTER_API_KEY: ');
+  // 3. Interactive Ink prompt
+  const { promptApiKey } = await import('./setup.tsx');
+  const key = await promptApiKey();
 
   if (!key) {
     console.error('\n❌  No API key provided. Exiting.\n');
@@ -79,12 +80,13 @@ async function resolveApiKey() {
 
   config.openrouterApiKey = key;
   saveConfig(config);
-  console.log(`    ✅  Saved to ${CONFIG_PATH}\n`);
+  console.log(`✅  Saved to ${CONFIG_PATH}\n`);
 
   return key;
 }
 
-// Resolve API key first
+// ── Main ──────────────────────────────────────────────────────────────────────
+
 const apiKey = await resolveApiKey();
 
 // Build if needed
@@ -94,9 +96,7 @@ const needsBuild =
 
 if (needsBuild) {
   console.log('📦  Building frontend...');
-  const buildCmd = fs.existsSync(path.join(ROOT, 'pnpm-lock.yaml'))
-    ? 'pnpm build'
-    : 'npm run build';
+  const buildCmd = fs.existsSync(path.join(ROOT, 'pnpm-lock.yaml')) ? 'pnpm build' : 'npm run build';
   try {
     execSync(buildCmd, { cwd: ROOT, stdio: 'inherit' });
   } catch {
@@ -111,7 +111,6 @@ const apiServer = spawn(tsxBin, [path.join(ROOT, 'server', 'index.ts')], {
   env: { ...process.env, PORT: String(API_PORT), OPENROUTER_API_KEY: apiKey },
   stdio: 'inherit',
 });
-
 apiServer.on('error', (err) => {
   console.error('❌  Failed to start API server:', err.message);
   process.exit(1);
@@ -121,7 +120,6 @@ apiServer.on('error', (err) => {
 const staticServer = http.createServer((req, res) => {
   const url = req.url || '/';
 
-  // Proxy /api/* → Express
   if (url.startsWith('/api')) {
     const opts = {
       hostname: 'localhost',
@@ -139,11 +137,8 @@ const staticServer = http.createServer((req, res) => {
     return;
   }
 
-  // Serve static files (SPA fallback to index.html)
   let filePath = path.join(distDir, url === '/' ? 'index.html' : url);
-  if (!fs.existsSync(filePath)) {
-    filePath = path.join(distDir, 'index.html');
-  }
+  if (!fs.existsSync(filePath)) filePath = path.join(distDir, 'index.html');
 
   const mime = mimeLookup(filePath) || 'text/plain';
   res.writeHead(200, { 'Content-Type': mime });
@@ -151,15 +146,11 @@ const staticServer = http.createServer((req, res) => {
 });
 
 staticServer.listen(PORT, () => {
-  console.log(`✅  autotuner is running at http://localhost:${PORT}`);
+  console.log(`\n✅  autotuner → http://localhost:${PORT}`);
   console.log(`    API server on port ${API_PORT}`);
   console.log(`    Config: ${CONFIG_PATH}\n`);
 });
 
-const shutdown = () => {
-  apiServer.kill();
-  staticServer.close();
-  process.exit(0);
-};
+const shutdown = () => { apiServer.kill(); staticServer.close(); process.exit(0); };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
