@@ -68,7 +68,7 @@ storageBackend: file
 
 ### Release Automation
 - `release-bump.yml` runs on every push to `main`, verifies the repo, patch-bumps `package.json`, commits `chore: release vX.Y.Z [skip ci]`, pushes tag `vX.Y.Z`, then invokes the publish workflow with that exact tag
-- `publish-release.yml` is a reusable/manual workflow that checks out a supplied tag, publishes `prompt-autotuner` to npm, then creates a GitHub Release entry for the same tag
+- `publish-release.yml` is a reusable/manual workflow that checks out a supplied tag, creates a GitHub Release entry for that tag, then publishes `prompt-autotuner` to npm
 - Required GitHub repository secret: `NPM_TOKEN`
 - Optional GitHub repository secret: `RELEASE_PAT` when protected branch rules block `GITHUB_TOKEN` from pushing the release commit/tag back to `main`; the publish step itself no longer relies on tag-push events firing
 
