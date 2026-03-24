@@ -1,11 +1,147 @@
 # AI Agent Rules — prompt-autotuner
 
-> This file will be enhanced with comprehensive codebase rules after setup is complete.
-> Placeholder created as part of ai-ready initialization.
-
 ## Project Overview
 - **Name**: prompt-autotuner (npm: `prompt-autotuner`)
-- **Purpose**: Automated LLM prompt refinement via test-case-driven eval-refine loops
-- **Stack**: React 19 + TypeScript + Vite + Express + Tailwind CSS (CDN) + Ink CLI
-- **Package Manager**: pnpm
+- **Purpose**: Automated LLM prompt refinement via test-case-driven eval-refine loops. Treats prompts like code with tests — register positive/negative test cases, then an LLM runs eval-refine until all pass.
+- **Stack**: React 19 + TypeScript + Vite 6 + Express 4 + Tailwind CSS (CDN) + Ink 6 (CLI)
+- **Package Manager**: pnpm (always use `pnpm`, never npm or yarn)
 - **License**: MIT
+- **Repository**: `kargnas/prompt-autotuner`
+- **Default Language**: English (UI has i18n for en/ko via `translations.ts`)
+
+## Development Environment
+
+### Prerequisites
+- Node.js ≥ 18 (LTS)
+- pnpm ≥ 9
+- OpenRouter API key (https://openrouter.ai)
+
+### Quick Start
+```bash
+cp -n .env.ai-ready .env
+# Set OPENROUTER_API_KEY in .env
+pnpm install
+pnpm dev          # Vite :3000 + Express :3001
+```
+
+### Scripts
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start both Vite dev server (:3000) and Express API (:3001) via concurrently |
+| `pnpm dev:client` | Vite dev server only |
+| `pnpm dev:server` | Express API server only (needs `OPENROUTER_API_KEY`) |
+| `pnpm build` | Production build via Vite |
+| `pnpm start` | Run CLI entry point (`bin/autotuner.js`) |
+
+### Build & Verify
+- **Type check**: `npx tsc --noEmit` — must pass with 0 errors
+- **Lint**: `npx eslint .` — warnings acceptable, errors must be fixed
+- **Build**: `pnpm build` — must exit 0
+
+### Environment Variables
+Only one required secret:
+| Variable | Required | Description |
+|---|---|---|
+| `OPENROUTER_API_KEY` | Yes | OpenRouter API key for LLM proxy |
+| `PORT` | No | Vite dev server port (default: 3000) |
+| `API_PORT` | No | Express API port (default: 3001) |
+
+> See `README.ai-ready.md` for AI agent-specific setup guide and Codex Cloud instructions.
+
+## Codebase Structure
+
+Run `tree -I 'node_modules|dist|.git' --dirsfirst` to see the full structure.
+
+```
+prompt-autotuner/
+├── bin/                  # CLI entry points (npx prompt-autotuner)
+│   ├── autotuner.js      # Main CLI: resolves API key → builds → starts servers
+│   └── setup.tsx         # Ink-based interactive API key prompt
+├── components/           # React UI components (Tailwind CSS via CDN)
+│   ├── icons/            # SVG icon components (Heroicons-style)
+│   ├── Header.tsx        # App header with settings/reset/language controls
+│   ├── PromptInputForm.tsx  # Main input: prompt, test cases, model selection
+│   ├── RefinementDisplay.tsx # Refinement attempt history viewer
+│   ├── SavedPromptsPanel.tsx # Saved prompts CRUD panel
+│   ├── SettingsModal.tsx     # Prompt guide and few-shot strategy settings
+│   ├── MobileNav.tsx         # Bottom nav for mobile (setup/process/result/saved)
+│   ├── CodeBlock.tsx         # Syntax-highlighted code block with copy
+│   └── Loader.tsx            # Loading spinner
+├── docs/                 # Reference documents embedded in contentService.ts
+├── server/
+│   └── index.ts          # Express API proxy — holds OPENROUTER_API_KEY server-side
+├── services/
+│   ├── llmService.ts     # Core: runPrompt, evaluateOutput, diversifyTestCases, refinePrompt
+│   └── contentService.ts # Prompt engineering guides (embedded as string constants)
+├── App.tsx               # Root component — session state, eval-refine orchestration
+├── constants.ts          # Model list, default prompts, localStorage keys
+├── translations.ts       # i18n strings (en/ko)
+├── types.ts              # TypeScript interfaces (TestCase, RefinementAttempt, etc.)
+├── index.tsx             # React DOM entry point
+├── index.html            # HTML shell (Tailwind CDN, Vite entry)
+├── vite.config.ts        # Vite config: React plugin, /api proxy to :3001
+└── tsconfig.json         # TypeScript config: ES2022, bundler resolution, JSX
+```
+
+### Key Architecture Decisions
+- **Separate generation and evaluation models**: A fast model generates output; a more capable model evaluates it. Both configurable via UI.
+- **Server-side API key**: Express on :3001 holds the OpenRouter key. Vite proxies `/api/*` to it. Key never enters the frontend bundle.
+- **LLM-based semantic evaluation**: No string matching. The evaluator judges semantic equivalence and produces reasoning traces that drive refinement.
+- **No database**: All state lives in browser `localStorage`. No external services needed.
+- **Tailwind via CDN**: `index.html` loads Tailwind from CDN script tag, not as a build dependency.
+
+## Coding Rules
+
+### Code Quality: Always verify before commit
+- Run `git status` after completing work — ensure no unnecessary files or debug code remain
+- Run `npx tsc --noEmit` and `pnpm build` before every commit
+- Write human-readable code. Use descriptive variable names. Comment only the "why", not the "what".
+- Delete dead code confidently — git preserves history
+
+### TypeScript
+- **Never** use `as any`, `@ts-ignore`, or `@ts-expect-error` to suppress type errors
+- Follow existing patterns: interfaces in `types.ts`, constants in `constants.ts`
+- The project uses `moduleResolution: "bundler"` and `jsx: "react-jsx"` — respect these settings
+- Path alias `@/*` maps to project root
+
+### React Patterns
+- Functional components only (`React.FC`)
+- State management via `useState` + `useCallback` — no external state library
+- localStorage for persistence (keys defined in `constants.ts`)
+- `AbortController` for cancellable async operations
+- Components receive translations via `language` prop → `translations[language]`
+
+### Styling
+- Tailwind CSS via CDN (`index.html` script tag) — not a build dependency
+- Utility-first classes directly on elements, no separate CSS files
+- Responsive: `md:` breakpoint for desktop, mobile-first layout with `MobileNav`
+
+### API & Service Layer
+- All LLM calls go through `services/llmService.ts` → `callLLM()` → `/api/chat` → Express → OpenRouter
+- Express server (`server/index.ts`) is a thin proxy — no business logic
+- Model names follow OpenRouter format: `provider/model-name` (e.g. `google/gemini-2.5-flash`)
+- JSON responses expected from LLM calls use `response_format: { type: 'json_object' }`
+
+### i18n
+- All user-facing strings live in `translations.ts` (English + Korean)
+- Browser language auto-detected on mount, toggleable via header
+- Use template pattern `{{variable}}` for interpolation in translation strings
+
+### Git Conventions
+- Commit messages: Conventional Commits format, English, lowercase description
+- Types: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`
+- Single-purpose commits — one logical change per commit
+
+## Restrictions
+- **Never** commit `.env` or API keys
+- **Never** add new npm dependencies without explicit request — this project deliberately has minimal deps
+- **Never** change the Tailwind CDN approach to a build-time setup without discussion
+- **Never** modify `bin/autotuner.js` CLI behavior without understanding the npm publish flow
+- **Never** move LLM API key handling to the frontend — it must stay server-side
+
+## Mandatory Practices
+- **Always** update `translations.ts` when adding user-facing text (both `en` and `ko`)
+- **Always** add new interfaces to `types.ts` when introducing new data structures
+- **Always** use `signal?: AbortSignal` parameter for any new async LLM operation
+- **Always** run `pnpm build` to verify changes compile cleanly before marking work done
+- **Always** update this AGENTS.md when completing a task that changes project structure, conventions, or tooling
