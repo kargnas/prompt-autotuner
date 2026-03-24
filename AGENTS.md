@@ -137,7 +137,7 @@ prompt-autotuner/
 
 ### API & Service Layer
 - All LLM calls go through `services/llmService.ts` → `callLLM()` → `/api/chat` → Express → OpenRouter
-- Express server (`server/index.ts`) is a thin proxy — no business logic
+- Express server (`server/index.ts`) is a thin proxy for LLM calls + CRUD API for saved prompts storage
 - Model names follow OpenRouter format: `provider/model-name` (e.g. `google/gemini-2.5-flash`)
 - JSON responses expected from LLM calls use `response_format: { type: 'json_object' }`
 
