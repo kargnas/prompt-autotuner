@@ -1,24 +1,24 @@
-# auto-tuner
+# autotuner
 
-프롬프트 엔지니어링은 생각보다 훨씬 지루한 작업이다. 프롬프트를 바꾸고, 실행해보고, 출력이 이상하면 다시 고치는 루프를 손으로 반복하게 된다. auto-tuner는 이 루프를 자동화한다. 테스트 케이스 몇 개만 등록하면, LLM이 직접 프롬프트를 분석하고 수정하면서 모든 케이스를 통과할 때까지 반복한다.
+![cost comparison](04-cost-v3.png)
 
-![demo](demo.png)
+*Prompt engineering is fundamentally repetitive experimentation. You look at the output, tweak the prompt, run it again — by hand, every time. autotuner hands that loop off to an LLM. Register a few test cases and it analyzes, revises, and repeats until everything passes.*
+
+*We do this manually every time we build an LLM application. These days, we sometimes delegate even that to AI agents like Claude Code — but most prompts remain untuned and waste tokens. A well-tuned prompt can turn a task that seemed to require Gemini Pro into one that works fine with Gemini Flash Lite — 20x cheaper on input, 30x cheaper on output. autotuner does that automatically. I built this for personal use in September 2025 and still reach for it regularly. - @kargnas*
+
+The idea: treat a prompt like code with tests. Register positive test cases ("given this input, I want this output") and negative ones ("given this input, this output must not appear"), then let the LLM run the eval-refine loop until everything passes. Evaluation is semantic, not string-matching — the model judges whether the intent was met and explains why it passed or failed. That reasoning becomes the input to the next refinement step.
 
 ## How it works
 
-핵심 아이디어는 LLM을 평가자이자 편집자로 동시에 쓰는 것이다.
+Three files do most of the work.
 
-1. 프롬프트를 작성한다. 변수는 `{{variable}}` 형태로 쓴다.
-2. 테스트 케이스를 등록한다. 긍정(이 입력에는 이 출력이 나와야 한다)과 부정(이 출력은 나오면 안 된다) 두 가지를 모두 쓸 수 있다.
-3. 실행하면 각 케이스마다 프롬프트를 적용하고, 평가 LLM이 결과를 판정한다.
-4. 실패한 케이스가 있으면 refinement LLM이 실패 이유를 분석해 프롬프트를 수정하고, 다시 평가한다.
-5. 전부 통과하거나 최대 시도 횟수에 도달하면 멈춘다.
-
-평가는 의미론적으로 이뤄진다. "정확히 같은 문자열인가"가 아니라 "의도가 맞는가"를 LLM이 판단하기 때문에, 약간의 표현 차이는 통과된다. 실패 이유도 자연어로 설명해준다.
+- **`services/llmService.ts`** — the core agent loop. Four functions: `runPrompt`, `evaluateOutput`, `diversifyTestCases`, `refinePrompt`. The LLM runs the prompt, another LLM evaluates the result, and on failure a third call generates a revised prompt with a reasoning trace attached.
+- **`server/index.ts`** — a thin Express server that holds the OpenRouter API key server-side. The frontend only calls `/api/chat` and never touches the key directly. This keeps the key out of the JS bundle.
+- **`App.tsx`** — session state and UI. Handles test case registration, tuning runs, result inspection, and prompt saving.
 
 ## Quick start
 
-[pnpm](https://pnpm.io/)과 [OpenRouter](https://openrouter.ai) API 키가 필요하다.
+Requires [pnpm](https://pnpm.io/) and an [OpenRouter](https://openrouter.ai) API key.
 
 ```bash
 git clone https://github.com/kargnas/prompt-autotuner
@@ -28,35 +28,45 @@ export OPENROUTER_API_KEY=sk-or-...
 pnpm dev
 ```
 
-`http://localhost:3000`을 열면 된다.
+Open `http://localhost:3000`.
 
 ## Project structure
 
 ```
-prompt-autotuner/
-├── server/
-│   └── index.ts          # Express API 서버. API 키는 여기서만 처리한다
-├── services/
-│   ├── llmService.ts     # runPrompt / evaluateOutput / diversifyTestCases / refinePrompt
-│   └── contentService.ts
-├── components/           # React 컴포넌트
-├── docs/                 # 프롬프트 엔지니어링 가이드 (XML, 전략 등)
-├── App.tsx
-├── types.ts
-└── vite.config.ts        # /api/* → localhost:3001 프록시
+server/
+  index.ts          — API proxy. OpenRouter key lives here only
+services/
+  llmService.ts     — runPrompt / evaluateOutput / diversifyTestCases / refinePrompt
+  contentService.ts
+components/         — React components
+docs/               — prompting guides (XML structure, design strategies)
+App.tsx
+types.ts
+vite.config.ts      — proxies /api/* to localhost:3001
 ```
 
 ## Design choices
 
-**생성과 평가를 다른 모델로 분리한다.** 빠른 모델로 출력을 생성하고, 더 정확한 모델로 평가하는 게 비용 대비 품질이 좋다. 설정에서 두 모델을 독립적으로 지정할 수 있다.
+- **Separate generation and evaluation models.** A fast model generates the output; a more capable model evaluates it. This gives better cost-to-quality than using the same model for both. Both are configurable independently. Gemini 2.5 Flash Lite runs at ~173 tok/s vs Gemini 3.1 Pro's ~51 tok/s — 3.4x faster throughput on top of the cost savings.
+- **LLM-based evaluation.** String matching produces too many false negatives on natural language output. The evaluator understands semantic equivalence and produces a reasoning trace. That trace is what actually drives the refinement — without it, the editor is flying blind.
+- **Negative test cases.** Not just "this output should appear" but "this output must not appear." Useful when you need the prompt to avoid specific patterns or framings.
+- **Test case diversification.** Given one example, the model generates variations automatically. Saves the tedium of writing edge cases by hand.
+- **OpenRouter routing.** One API key covers GPT, Claude, Gemini, and others. Useful for comparing how different models respond to the same prompt under tuning pressure.
+- **Key stays server-side.** Vite proxies `/api/*` to the Express server on port 3001. Nothing sensitive ends up in the frontend bundle.
 
-**API 키는 서버에서만 관리한다.** 프론트엔드는 `/api/chat`만 호출하고 키를 직접 다루지 않는다. Vite dev 서버가 요청을 Express(포트 3001)로 프록시한다. 번들에 키가 포함되는 구조는 피했다.
+---
 
-**평가를 LLM에게 맡긴다.** 자연어 출력을 문자열 비교로 판정하면 false negative가 너무 많다. LLM 평가자는 의미론적 동치를 이해하고, 왜 통과/실패인지 설명도 해준다. 이 reasoning 로그가 refinement 단계에서 핵심 입력이 된다.
+*한국어 설명*
 
-**테스트 케이스 자동 다양화.** 케이스 하나를 기반으로 LLM이 비슷한 변형을 자동 생성한다. 엣지 케이스를 손으로 하나씩 쓰는 수고를 줄이기 위해서다.
+LLM 앱을 만들다 보면 프롬프트를 손으로 고치고, 실행해보고, 또 고치는 작업을 계속 반복하게 됩니다. 요즘은 이 작업을 Claude Code 같은 AI 에이전트에 넘기기도 하는데, 그래도 대부분의 프롬프트는 제대로 튜닝되지 않은 채 토큰을 낭비하고 있습니다. 튜닝을 한 번만 제대로 거치면, Gemini Pro가 필요해 보이던 작업을 Gemini Flash Lite로 처리할 수 있게 됩니다. 입력 기준으로 20배 저렴하고, 출력 기준으로는 30배 차이입니다. autotuner는 그 과정을 자동으로 해주는 도구입니다. 2025년 9월에 혼자 쓰려고 만들었는데, 지금도 자주 꺼내 씁니다.
 
-**OpenRouter를 쓴다.** 단일 API 키로 GPT, Claude, Gemini 등 다양한 모델을 교체해가며 쓸 수 있다. 어떤 모델이 특정 프롬프트에 더 잘 맞는지 직접 비교할 수 있다.
+아이디어 자체는 단순합니다. 프롬프트를 테스트가 있는 코드처럼 취급하는 겁니다. "이 입력에는 이 출력이 나와야 한다"는 긍정 케이스와 "이 출력이 나오면 안 된다"는 부정 케이스를 정의해두면, LLM이 평가-수정 루프를 전부 통과할 때까지 돌립니다. 평가는 문자열 비교가 아니라 의미 판단으로 하기 때문에, 표현이 조금 다르더라도 의도가 맞으면 통과합니다. 실패 이유도 자연어로 설명해주고, 그게 다음 수정 단계의 입력이 됩니다.
+
+---
+
+| | |
+|:---:|:---:|
+| ![demo](demo.png) | ![demo](demo.png) |
 
 ## License
 
