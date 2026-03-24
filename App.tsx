@@ -149,8 +149,8 @@ const App: React.FC = () => {
             loadSavedPrompts().then(prompts => {
                 const normalizedPrompts = (prompts as unknown as LegacySavedPrompt[]).map(normalizeSavedPrompt);
                 setSavedPrompts(normalizedPrompts);
-            });
-        });
+            }).catch(e => console.error('Failed to load saved prompts', e));
+        }).catch(e => console.error('Migration failed', e));
     }, []);
 
     // Save session data to localStorage whenever it changes
