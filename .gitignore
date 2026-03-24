@@ -7,15 +7,32 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build output
 dist
 dist-ssr
-*.local
+
+# Environment variables
 .env
+.env.*
+!.env.example
+!.env.ai-ready
+
+# Local overrides
+*.local
+
+# Sisyphus agent workspace
+.sisyphus/
+!.sisyphus/.gitignore
+!.sisyphus/plans/
+!.sisyphus/evidence/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+
 .idea
 .DS_Store
 *.suo
@@ -23,3 +40,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# OS files
+Thumbs.db
+
+# Autotuner user config (created at runtime in ~/.autotuner/)
+output/
+memory/

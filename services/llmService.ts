@@ -56,7 +56,7 @@ export async function runPrompt(
   } catch (error: any) {
     if (error.name === 'AbortError') throw error;
     console.error('Error running prompt:', error);
-    throw new Error('Failed to get a response from the AI model.');
+    throw new Error('Failed to get a response from the AI model.', { cause: error });
   }
 }
 
@@ -187,7 +187,7 @@ Return a JSON array with objects: {variables: {...}, expectedOutput: "desired st
     );
   } catch (error) {
     console.error('Error diversifying test cases:', error);
-    throw new Error('Failed to generate diverse test cases from the AI model.');
+    throw new Error('Failed to generate diverse test cases from the AI model.', { cause: error });
   }
 }
 
@@ -260,6 +260,6 @@ export async function refinePrompt(
   } catch (error: any) {
     if (error.name === 'AbortError') throw error;
     console.error('Error refining prompt:', error);
-    throw new Error('Failed to get a refined prompt from the AI model.');
+    throw new Error('Failed to get a refined prompt from the AI model.', { cause: error });
   }
 }
