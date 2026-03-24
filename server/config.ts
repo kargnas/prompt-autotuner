@@ -14,7 +14,7 @@ import yaml from 'js-yaml';
 
 // ── Paths ────────────────────────────────────────────────────────────────────
 
-export const CONFIG_DIR = path.join(os.homedir(), '.autotuner');
+export const CONFIG_DIR = process.env.AUTOTUNER_DIR || path.join(os.homedir(), '.autotuner');
 export const CONFIG_YAML_PATH = path.join(CONFIG_DIR, 'config.yaml');
 /** Legacy JSON path — auto-migrated to YAML on first load */
 const CONFIG_JSON_PATH = path.join(CONFIG_DIR, 'config.json');

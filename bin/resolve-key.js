@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import yaml from 'js-yaml';
 
-const CONFIG_DIR = path.join(os.homedir(), '.autotuner');
+const CONFIG_DIR = process.env.AUTOTUNER_DIR || path.join(os.homedir(), '.autotuner');
 const CONFIG_YAML_PATH = path.join(CONFIG_DIR, 'config.yaml');
 const CONFIG_JSON_PATH = path.join(CONFIG_DIR, 'config.json');
 

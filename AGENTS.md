@@ -47,6 +47,7 @@ All configuration follows a unified priority chain: **`.env` → `~/.autotuner/c
 | `OPENROUTER_API_KEY` | `openrouterApiKey` | Yes | — | OpenRouter API key for LLM proxy |
 | `PORT` | `port` | No | `3000` | Static/proxy server port (CLI mode) |
 | `API_PORT` | `apiPort` | No | `3001` | Express API server port |
+| `AUTOTUNER_DIR` | — | No | `~/.autotuner` | Data directory for config and saved prompts |
 | `STORAGE_BACKEND` | `storageBackend` | No | `file` | Saved prompts backend: `file` or `localstorage` |
 
 **Example `~/.autotuner/config.yaml`** (for npx users without a local `.env`):
