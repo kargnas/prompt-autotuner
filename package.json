@@ -11,7 +11,8 @@
     "dev:server": "tsx server/index.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node bin/autotuner.js"
+    "start": "node bin/autotuner.js",
+    "release:version": "node scripts/bump-version.mjs"
   },
   "dependencies": {
     "@inkjs/ui": "^2.0.0",
