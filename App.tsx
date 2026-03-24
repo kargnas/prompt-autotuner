@@ -32,6 +32,18 @@ interface LegacySavedPrompt {
     sourceLabel?: string;
 }
 
+type StatusState =
+    | {
+        type: 'translation';
+        key: string;
+        values?: Record<string, string | number>;
+    }
+    | {
+        type: 'raw';
+        message: string;
+    }
+    | null;
+
 const normalizeSavedPromptSource = (savedPrompt: LegacySavedPrompt): Pick<SavedPrompt, 'source' | 'sourceAttempt' | 'sourceLabel'> => {
     if (savedPrompt.source === 'initialPrompt' || savedPrompt.source === 'finalResult' || savedPrompt.source === 'attempt' || savedPrompt.source === 'legacy') {
         return {
@@ -82,7 +94,7 @@ const App: React.FC = () => {
     const [evaluationModel, setEvaluationModel] = useState<string>(DEFAULT_EVALUATION_MODEL);
     const [maxAttempts, setMaxAttempts] = useState<number>(5);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [status, setStatus] = useState<string>('');
+    const [statusState, setStatusState] = useState<StatusState>(null);
     const [finalPrompt, setFinalPrompt] = useState<string | null>(null);
     const [history, setHistory] = useState<RefinementAttempt[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -99,12 +111,23 @@ const App: React.FC = () => {
     const [negativePromptRule, setNegativePromptRule] = useState<string>(DEFAULT_PROMPT_RULE);
     
     const abortControllerRef = useRef<AbortController | null>(null);
+    const status = statusState?.type === 'translation'
+        ? t(statusState.key, statusState.values)
+        : statusState?.message ?? '';
+
+    const setTranslatedStatus = useCallback((key: string, values?: Record<string, string | number>) => {
+        setStatusState({ type: 'translation', key, values });
+    }, []);
+
+    const setRawStatus = useCallback((message: string) => {
+        setStatusState({ type: 'raw', message });
+    }, []);
 
     useEffect(() => {
-        if (!isLoading && !status) {
-             setStatus(t('process.ready'));
+        if (!isLoading && !statusState) {
+             setTranslatedStatus('process.ready');
         }
-    }, [t, isLoading, status]);
+    }, [isLoading, setTranslatedStatus, statusState]);
 
     useEffect(() => {
         const initializeSettings = () => {
@@ -187,7 +210,7 @@ const App: React.FC = () => {
         if (isAlreadySaved) {
             // It exists, so remove it based on content
             updateSavedPrompts(savedPrompts.filter(p => p.prompt !== promptText));
-            setStatus(t('process.unsaved'));
+            setTranslatedStatus('process.unsaved');
         } else {
             // It doesn't exist, so save it.
             const newPrompt: SavedPrompt = {
@@ -196,7 +219,7 @@ const App: React.FC = () => {
                 savedAt: new Date().toISOString(),
             };
             updateSavedPrompts([newPrompt, ...savedPrompts]);
-            setStatus(t('process.saved', { source: getSavedPromptSourceLabel(newPrompt, t) }));
+            setTranslatedStatus('process.saved', { source: getSavedPromptSourceLabel(newPrompt, t) });
         }
     };
 
@@ -214,7 +237,7 @@ const App: React.FC = () => {
             setFinalPrompt(null);
             setError(null);
             // Reuse the existing status logic, but maybe just say "Loaded"
-            setStatus(t('process.ready'));
+            setTranslatedStatus('process.ready');
             setActiveView('setup'); // Switch to setup view on mobile after loading
         }
     };
@@ -246,7 +269,7 @@ const App: React.FC = () => {
             setHistory([]);
             setFinalPrompt(null);
             setError(null);
-            setStatus(t('process.ready'));
+            setTranslatedStatus('process.ready');
         }
     };
 
@@ -373,7 +396,7 @@ const App: React.FC = () => {
     const handleCancel = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
-            setStatus(t('process.cancelled'));
+            setTranslatedStatus('process.cancelled');
         }
     };
 
@@ -382,7 +405,7 @@ const App: React.FC = () => {
         const signal = abortControllerRef.current.signal;
 
         setIsLoading(true);
-        setStatus(t('process.starting'));
+        setTranslatedStatus('process.starting');
         setHistory([]);
         setFinalPrompt(null);
         setError(null);
@@ -402,7 +425,7 @@ const App: React.FC = () => {
             if (signal.aborted) return;
             
             const attempt = i + 1;
-            setStatus(t('process.testing', { attempt, max: maxAttempts, count: testCases.length }));
+            setTranslatedStatus('process.testing', { attempt, max: maxAttempts, count: testCases.length });
             
             const previousAttempt = cumulativeHistory.length > 0 ? cumulativeHistory[cumulativeHistory.length - 1] : null;
 
@@ -421,7 +444,7 @@ const App: React.FC = () => {
             try {
                 if (signal.aborted) return;
                 
-                setStatus(t('process.running', { attempt, max: maxAttempts, count: testCases.length }));
+                setTranslatedStatus('process.running', { attempt, max: maxAttempts, count: testCases.length });
 
                 const testPromises = testCases.map(async (testCase): Promise<TestCaseResult> => {
                     const variables = variablesArrayToObject(testCase.variables);
@@ -458,17 +481,17 @@ const App: React.FC = () => {
                 setHistory([...cumulativeHistory]);
 
                 if (allPassed) {
-                    setStatus(t('process.success', { count: testCases.length }));
+                    setTranslatedStatus('process.success', { count: testCases.length });
                     setFinalPrompt(currentPrompt);
                     setIsLoading(false);
                     setActiveView('result'); // Switch to result view on mobile
                     return;
                 }
 
-                setStatus(t('process.attemptSummary', { attempt, max: maxAttempts, details }));
+                setTranslatedStatus('process.attemptSummary', { attempt, max: maxAttempts, details });
                 
                 if (i < maxAttempts - 1) {
-                    setStatus(t('process.refining', { attempt, max: maxAttempts }));
+                    setTranslatedStatus('process.refining', { attempt, max: maxAttempts });
                     const previousAttemptsSummary = cumulativeHistory.map(h => `Attempt #${h.attempt}: ${h.details}`).join('\n');
                     const firstFailure = results.find(r => r.status === 'failed');
                     const firstFailureIndex = testCases.findIndex(tc => tc.id === firstFailure?.testCase.id);
@@ -502,13 +525,13 @@ const App: React.FC = () => {
             } catch (err: any) {
                 if (err.name === 'AbortError') {
                     setError(t('process.cancelled'));
-                    setStatus(t('process.cancelled'));
+                    setTranslatedStatus('process.cancelled');
                     setIsLoading(false);
                     return;
                 }
                 const errorMessage = t('process.error', { attempt, error: err.message });
                 setError(errorMessage);
-                setStatus(errorMessage);
+                setRawStatus(errorMessage);
                 setIsLoading(false);
                 setActiveView('result'); // Switch to result view on error
                 return;
@@ -516,11 +539,11 @@ const App: React.FC = () => {
         }
 
         setError(t('process.fail', { max: maxAttempts }));
-        setStatus(t('process.finished'));
+        setTranslatedStatus('process.finished');
         setIsLoading(false);
         setActiveView('result');
 
-    }, [testCases, promptGuide, negativePromptRule, initialPrompt, generationModel, evaluationModel, refinementDirection, maxAttempts, t]);
+    }, [testCases, promptGuide, negativePromptRule, initialPrompt, generationModel, evaluationModel, refinementDirection, maxAttempts, setRawStatus, setTranslatedStatus, t]);
 
     const renderFinalResult = () => (
         <>
