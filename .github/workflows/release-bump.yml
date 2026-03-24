@@ -3,20 +3,28 @@ name: Release Bump
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_bump:
+        description: 'Publish current version without bumping'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: release-bump-main
   cancel-in-progress: false
 
 jobs:
-  release-bump:
-    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip release]')
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip release]'))
     runs-on: ubuntu-latest
-    outputs:
-      release_tag: ${{ steps.bump.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,6 +39,7 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -45,12 +54,24 @@ jobs:
         run: pnpm build
 
       - name: Bump patch version
+        if: ${{ !(inputs.skip_bump == true) }}
         id: bump
         run: pnpm release:version patch
 
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ -n "${{ steps.bump.outputs.tag }}" ]; then
+            echo "tag=${{ steps.bump.outputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Commit and push release version
+        if: ${{ !(inputs.skip_bump == true) }}
         env:
-          RELEASE_TAG: ${{ steps.bump.outputs.tag }}
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -59,12 +80,13 @@ jobs:
           git tag -a "${RELEASE_TAG}" -m "Release ${RELEASE_TAG}"
           git push origin HEAD:main "${RELEASE_TAG}"
 
-  publish-release:
-    needs: release-bump
-    permissions:
-      contents: write
-      id-token: write
-    uses: ./.github/workflows/publish-release.yml
-    with:
-      tag_name: ${{ needs.release-bump.outputs.release_tag }}
-    secrets: inherit
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+
+      - name: Publish package to npm
+        run: pnpm publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
