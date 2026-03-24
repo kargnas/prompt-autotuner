@@ -120,25 +120,17 @@ pnpm build          # Verify
 git commit           # Conventional Commits: feat: / fix: / chore: / docs:
 ```
 
-PRs preferred over direct commits to main.
+---
 
-## Useful links
-
-- [OpenRouter docs](https://openrouter.ai/docs)
-- [Vite docs](https://vite.dev)
-- [Ink (CLI framework)](https://github.com/vadimdemedes/ink)
+| | |
+|:---:|:---:|
+| ![demo](demo.png) | <img width="2048" height="1143" alt="autotuner result view" src="https://github.com/user-attachments/assets/2f02c0f5-fe23-45cb-bf19-915c5d798d87" /> |
 
 ---
 
 *한국어 설명*
 
 LLM 앱을 만들다 보면 프롬프트를 손으로 고치고, 실행해보고, 또 고치는 작업을 계속 반복하게 됩니다. autotuner는 그 과정을 자동으로 해주는 도구입니다. 긍정/부정 테스트 케이스를 정의하면, LLM이 평가-수정 루프를 전부 통과할 때까지 돌립니다. 평가는 문자열 비교가 아니라 의미 판단이므로, 표현이 다르더라도 의도가 맞으면 통과합니다.
-
----
-
-| | |
-|:---:|:---:|
-| ![demo](demo.png) | <img width="2048" height="1143" alt="autotuner result view" src="https://github.com/user-attachments/assets/2f02c0f5-fe23-45cb-bf19-915c5d798d87" /> |
 
 ## License
 
