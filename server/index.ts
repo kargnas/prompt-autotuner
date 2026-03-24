@@ -22,10 +22,16 @@ app.post('/api/chat', async (req, res) => {
       upstreamController.abort();
     }
   };
+  const handleResponseClose = () => {
+    // `req.close` fires on normal request completion in recent Node versions,
+    // so only treat a premature response close as a client disconnect.
+    if (!res.writableEnded) {
+      abortUpstream();
+    }
+  };
 
   req.on('aborted', abortUpstream);
-  req.on('close', abortUpstream);
-  res.on('close', abortUpstream);
+  res.on('close', handleResponseClose);
 
   try {
     const body: Record<string, unknown> = { model, messages };
@@ -60,8 +66,7 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: 'LLM call failed' });
   } finally {
     req.off('aborted', abortUpstream);
-    req.off('close', abortUpstream);
-    res.off('close', abortUpstream);
+    res.off('close', handleResponseClose);
   }
 });
 
