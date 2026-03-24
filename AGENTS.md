@@ -87,7 +87,7 @@ prompt-autotuner/
 ├── server/
 │   ├── index.ts          # Express API — LLM proxy + saved prompts storage API
 │   ├── config.ts         # Unified config loader (.env → config.yaml → defaults)
-│   └── storage.ts        # File-based saved prompts CRUD (~/.autotuner/saved-prompts.json)
+│   └── storage.ts        # File-based saved prompts CRUD (~/.autotuner/saved-prompts/{id}.yaml)
 ├── services/
 │   ├── llmService.ts     # Core: runPrompt, evaluateOutput, diversifyTestCases, refinePrompt
 │   ├── contentService.ts # Prompt engineering guides (embedded as string constants)
@@ -106,7 +106,7 @@ prompt-autotuner/
 - **Separate generation and evaluation models**: A fast model generates output; a more capable model evaluates it. Both configurable via UI.
 - **Server-side API key**: Express on :3001 holds the OpenRouter key. Vite proxies `/api/*` to it. Key never enters the frontend bundle.
 - **LLM-based semantic evaluation**: No string matching. The evaluator judges semantic equivalence and produces reasoning traces that drive refinement.
-- **No database**: Saved prompts stored in `~/.autotuner/saved-prompts.json` (file) with localStorage fallback. Session data still in localStorage.
+- **No database**: Saved prompts stored in `~/.autotuner/saved-prompts/{id}.yaml` (file) with localStorage fallback. Session data still in localStorage.
 - **Tailwind via CDN**: `index.html` loads Tailwind from CDN script tag, not as a build dependency.
 
 ## Coding Rules
