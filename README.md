@@ -66,7 +66,7 @@ LLM 앱을 만들다 보면 프롬프트를 손으로 고치고, 실행해보고
 
 | | |
 |:---:|:---:|
-| ![demo](demo.png) | ![demo](demo.png) |
+| ![demo](demo.png) | <img width="2048" height="1143" alt="image" src="https://github.com/user-attachments/assets/2f02c0f5-fe23-45cb-bf19-915c5d798d87" /> |
 
 ## License
 
