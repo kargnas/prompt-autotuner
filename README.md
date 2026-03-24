@@ -1,5 +1,8 @@
 # autotuner
 
+[![npx version](https://img.shields.io/npm/v/prompt-autotuner?label=npx%20version&color=cb3837)](https://www.npmjs.com/package/prompt-autotuner)
+[![github release](https://img.shields.io/github/v/release/kargnas/prompt-autotuner?label=github%20release&color=0969da)](https://github.com/kargnas/prompt-autotuner/releases)
+
 <img width="2048" height="1143" alt="autotuner screenshot" src="https://github.com/user-attachments/assets/83d5ee96-fad4-4a41-b781-4fbaea4d82fb" />
 
 Treat prompts like code with tests. Register positive test cases ("given this input, I want this output") and negative ones ("this output must not appear"), then let an LLM run the eval-refine loop until everything passes. Evaluation is semantic, not string-matching — the model judges whether the intent was met and explains why.
@@ -93,6 +96,7 @@ Standard files follow Vite + React conventions. Run `tree -I 'node_modules|dist|
 | `pnpm dev:client` | Vite only |
 | `pnpm dev:server` | Express only |
 | `pnpm start` | CLI (`bin/autotuner.js`) |
+| `pnpm release:version patch` | Local patch bump used by the automated release workflow |
 
 ## Verification
 
@@ -101,6 +105,21 @@ pnpm exec tsc --noEmit    # Type check — must pass
 pnpm exec eslint .        # Lint
 pnpm build          # Build — must exit 0
 ```
+
+## Release automation
+
+Every push to `main` runs an automated release bump:
+
+1. `TypeScript`, `ESLint`, and `pnpm build` must pass.
+2. `package.json` is patch-bumped automatically.
+3. A release commit and `vX.Y.Z` tag are pushed back to `main`.
+4. The tag workflow publishes the package to npm, so `npx prompt-autotuner` gets the new version.
+5. After npm publish succeeds, the same tag is published to the GitHub Releases tab.
+
+Required repository secrets:
+
+- `NPM_TOKEN` — npm publish token
+- `RELEASE_PAT` — optional. Use this only if protected branch rules prevent `GITHUB_TOKEN` from pushing the release commit and tag to `main`.
 
 ## Design decisions
 

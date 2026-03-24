@@ -32,6 +32,7 @@ pnpm dev          # Vite :3000 + Express :3001
 | `pnpm dev:server` | Express API server only (needs `OPENROUTER_API_KEY`) |
 | `pnpm build` | Production build via Vite |
 | `pnpm start` | Run CLI entry point (`bin/autotuner.js`) |
+| `pnpm release:version <patch\|minor\|major>` | Bump `package.json` version for the automated release flow |
 
 ### Build & Verify
 - **Type check**: `pnpm exec tsc --noEmit` — must pass with 0 errors
@@ -48,12 +49,22 @@ Only one required secret:
 
 > See `README.ai-ready.md` for AI agent-specific setup guide and Codex Cloud instructions.
 
+### Release Automation
+- `release-bump.yml` runs on every push to `main`, verifies the repo, patch-bumps `package.json`, commits `chore: release vX.Y.Z [skip ci]`, and pushes tag `vX.Y.Z`
+- `publish-release.yml` runs on tag pushes, publishes `prompt-autotuner` to npm, then creates a GitHub Release entry for the same tag
+- Required GitHub repository secret: `NPM_TOKEN`
+- Optional GitHub repository secret: `RELEASE_PAT` when protected branch rules block `GITHUB_TOKEN` from pushing the release commit/tag back to `main`
+
 ## Codebase Structure
 
 Run `tree -I 'node_modules|dist|.git' --dirsfirst` to see the full structure.
 
 ```
 prompt-autotuner/
+├── .github/workflows/    # CI + automated release workflows
+│   ├── ci.yml            # Typecheck/lint/build on PRs and main
+│   ├── release-bump.yml  # On main push: verify, bump patch version, push tag
+│   └── publish-release.yml # On tag push: npm publish + GitHub Release
 ├── bin/                  # CLI entry points (npx prompt-autotuner)
 │   ├── autotuner.js      # Main CLI: resolves API key → builds → starts servers
 │   └── setup.tsx         # Ink-based interactive API key prompt
@@ -68,6 +79,8 @@ prompt-autotuner/
 │   ├── CodeBlock.tsx         # Syntax-highlighted code block with copy
 │   └── Loader.tsx            # Loading spinner
 ├── docs/                 # Reference documents embedded in contentService.ts
+├── scripts/
+│   └── bump-version.mjs  # Shared semver bump script used by GitHub Actions
 ├── server/
 │   └── index.ts          # Express API proxy — holds OPENROUTER_API_KEY server-side
 ├── services/
