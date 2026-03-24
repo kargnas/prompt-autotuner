@@ -34,7 +34,11 @@ export type StorageBackend = 'file' | 'localstorage';
 export interface AppConfig {
   openrouterApiKey: string;
   port: number;
+  /** Whether `port` was explicitly set via .env or config.yaml (not a default) */
+  portExplicit: boolean;
   apiPort: number;
+  /** Whether `apiPort` was explicitly set via .env or config.yaml (not a default) */
+  apiPortExplicit: boolean;
   storageBackend: StorageBackend;
 }
 
@@ -47,7 +51,7 @@ interface YamlConfig {
 
 // ── Defaults ─────────────────────────────────────────────────────────────────
 
-const DEFAULTS: AppConfig = {
+const DEFAULTS: Omit<AppConfig, 'portExplicit' | 'apiPortExplicit'> = {
   openrouterApiKey: '',
   port: 3000,
   apiPort: 3001,
@@ -118,21 +122,23 @@ export function resolveConfig(): AppConfig {
   const storageRaw = process.env.STORAGE_BACKEND || yamlCfg.storageBackend || DEFAULTS.storageBackend;
   const storageBackend: StorageBackend = (storageRaw === 'localstorage') ? 'localstorage' : 'file';
 
+  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : undefined;
+  const envApiPort = process.env.API_PORT ? parseInt(process.env.API_PORT, 10) : undefined;
+
+  const portExplicit = envPort !== undefined || yamlCfg.port !== undefined;
+  const apiPortExplicit = envApiPort !== undefined || yamlCfg.apiPort !== undefined;
+
   return {
     openrouterApiKey:
       process.env.OPENROUTER_API_KEY
       || yamlCfg.openrouterApiKey
       || DEFAULTS.openrouterApiKey,
 
-    port:
-      (process.env.PORT ? parseInt(process.env.PORT, 10) : undefined)
-      ?? yamlCfg.port
-      ?? DEFAULTS.port,
+    port: envPort ?? yamlCfg.port ?? DEFAULTS.port,
+    portExplicit,
 
-    apiPort:
-      (process.env.API_PORT ? parseInt(process.env.API_PORT, 10) : undefined)
-      ?? yamlCfg.apiPort
-      ?? DEFAULTS.apiPort,
+    apiPort: envApiPort ?? yamlCfg.apiPort ?? DEFAULTS.apiPort,
+    apiPortExplicit,
 
     storageBackend,
   };

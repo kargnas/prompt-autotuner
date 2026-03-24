@@ -88,5 +88,28 @@ app.put('/api/storage/prompts', (req, res) => {
   }
 });
 
-const PORT = config.apiPort;
-app.listen(PORT, () => console.log(`API server running on :${PORT}`));
+const MAX_PORT_RETRIES = 10;
+
+function listen(port: number, attempt = 0): void {
+  const server = app.listen(port, () => {
+    console.log(`API server running on :${port}`);
+  });
+
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      if (config.apiPortExplicit) {
+        console.error(`Port ${port} is in use. Since API_PORT is explicitly configured, not retrying.`);
+        process.exit(1);
+      }
+      if (attempt < MAX_PORT_RETRIES) {
+        console.warn(`Port ${port} is in use, trying ${port + 1}...`);
+        listen(port + 1, attempt + 1);
+        return;
+      }
+    }
+    console.error('Failed to start API server:', err.message);
+    process.exit(1);
+  });
+}
+
+listen(config.apiPort);
