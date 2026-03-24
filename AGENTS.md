@@ -47,8 +47,8 @@ All configuration follows a unified priority chain: **`.env` → `~/.autotuner/c
 | `.env` Variable | `config.yaml` Key | Required | Default | Description |
 |---|---|---|---|---|
 | `OPENROUTER_API_KEY` | `openrouterApiKey` | Yes | — | OpenRouter API key for LLM proxy |
-| `PORT` | `port` | No | `3000` | Static/proxy server port (CLI mode). If omitted, auto-finds a free port on conflict |
-| `API_PORT` | `apiPort` | No | `3001` | Express API server port. If omitted, auto-finds a free port on conflict |
+| `PORT` | `port` | No | `3000` | Static/proxy server port. If explicitly set and occupied → error. If omitted and default occupied → auto-finds free port |
+| `API_PORT` | `apiPort` | No | `3001` | Express API server port. Same explicit/default behavior as PORT |
 | `AUTOTUNER_DIR` | — | No | `~/.autotuner` | Data directory for config and saved prompts |
 | `STORAGE_BACKEND` | `storageBackend` | No | `file` | Saved prompts backend: `file` or `localstorage` |
 
@@ -84,7 +84,10 @@ prompt-autotuner/
 │   ├── release-bump.yml  # On main push: verify, bump patch version, push tag
 │   └── publish-release.yml # On tag push: npm publish + GitHub Release
 ├── bin/                  # CLI entry points (npx prompt-autotuner)
-│   ├── autotuner.js      # Main CLI: resolves API key → builds → starts servers
+│   ├── autotuner.js      # Main CLI: resolves ports → API key → builds → starts servers
+│   ├── dev.js            # Dev mode: resolves ports → starts Vite + Express via concurrently
+│   ├── port-utils.js     # Port availability check + auto-resolution (explicit → error, default → fallback)
+│   ├── resolve-key.js    # Shared API key resolver (env → config.yaml → interactive prompt)
 │   └── setup.tsx         # Ink-based interactive API key prompt
 ├── components/           # React UI components (Tailwind CSS via CDN)
 │   ├── icons/            # SVG icon components (Heroicons-style)
@@ -113,7 +116,7 @@ prompt-autotuner/
 ├── types.ts              # TypeScript interfaces (TestCase, RefinementAttempt, etc.)
 ├── index.tsx             # React DOM entry point
 ├── index.html            # HTML shell (Tailwind CDN, Vite entry)
-├── vite.config.ts        # Vite config: React plugin, /api proxy to :3001
+├── vite.config.ts        # Vite config: React plugin, /api proxy to API_PORT (env-driven)
 └── tsconfig.json         # TypeScript config: ES2022, bundler resolution, JSX
 ```
 
