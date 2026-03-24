@@ -1,17 +1,16 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import CodeBracketIcon from './icons/CodeBracketIcon';
 import ListBulletIcon from './icons/ListBulletIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import BookmarkIcon from './icons/BookmarkIcon';
-import { translations, type Language } from '../translations';
 
 type View = 'setup' | 'process' | 'result' | 'saved';
 
 interface MobileNavProps {
   activeView: View;
   onViewChange: (view: View) => void;
-  language: Language;
 }
 
 const NavButton: React.FC<{
@@ -34,33 +33,33 @@ const NavButton: React.FC<{
     );
 };
 
-const MobileNav: React.FC<MobileNavProps> = ({ activeView, onViewChange, language }) => {
-  const t = translations[language].nav;
+const MobileNav: React.FC<MobileNavProps> = ({ activeView, onViewChange }) => {
+  const { t } = useTranslation();
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 flex bg-white border-t border-gray-200 shadow-lg z-20">
       <NavButton
         isActive={activeView === 'setup'}
         onClick={() => onViewChange('setup')}
         icon={<CodeBracketIcon className="w-5 h-5" />}
-        label={t.setup}
+        label={t('nav.setup')}
       />
       <NavButton
         isActive={activeView === 'process'}
         onClick={() => onViewChange('process')}
         icon={<ListBulletIcon className="w-5 h-5" />}
-        label={t.process}
+        label={t('nav.process')}
       />
       <NavButton
         isActive={activeView === 'result'}
         onClick={() => onViewChange('result')}
         icon={<SparklesIcon className="w-5 h-5" />}
-        label={t.result}
+        label={t('nav.result')}
       />
        <NavButton
         isActive={activeView === 'saved'}
         onClick={() => onViewChange('saved')}
         icon={<BookmarkIcon className="w-5 h-5" />}
-        label={t.saved}
+        label={t('nav.saved')}
       />
     </nav>
   );
