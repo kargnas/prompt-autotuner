@@ -72,8 +72,13 @@ app.put('/api/storage/prompts', (req, res) => {
 
   try {
     const { prompts } = req.body;
-    if (!Array.isArray(prompts)) {
-      return res.status(400).json({ error: 'prompts must be an array' });
+    if (!Array.isArray(prompts) || prompts.length > 1000) {
+      return res.status(400).json({ error: 'Invalid prompts array' });
+    }
+    for (const p of prompts) {
+      if (typeof p.id !== 'string' || !p.id) {
+        return res.status(400).json({ error: 'Each prompt must have a string id' });
+      }
     }
     writeSavedPrompts(prompts);
     res.json({ ok: true });

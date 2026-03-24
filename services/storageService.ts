@@ -55,7 +55,7 @@ export async function loadSavedPrompts(): Promise<SavedPrompt[]> {
         }
       }
     } catch {
-      // File API failed — fall back to localStorage for this call
+      detectedBackend = null;
     }
   }
 
@@ -74,7 +74,7 @@ export async function saveSavedPrompts(prompts: SavedPrompt[]): Promise<void> {
       });
       if (res.ok) return;
     } catch {
-      // File API failed — fall back to localStorage for this call
+      detectedBackend = null;
     }
   }
 

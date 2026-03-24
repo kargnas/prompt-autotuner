@@ -14,6 +14,20 @@ interface SavedPromptFile {
   testCases: unknown[];
 }
 
+// path.basename strips directory traversal (e.g. "../../.bashrc" → ".bashrc"),
+// then we reject anything that isn't a clean alphanumeric/dash/underscore id.
+function sanitizeId(id: string): string {
+  const base = path.basename(id).replace(/\0/g, '');
+  if (!base || base === '.' || base === '..' || !/^[\w-]+$/.test(base)) {
+    throw new Error(`Invalid prompt id: ${id}`);
+  }
+  return base;
+}
+
+function promptPath(id: string): string {
+  return path.join(SAVED_PROMPTS_DIR, `${sanitizeId(id)}.yaml`);
+}
+
 function ensureDir(): void {
   fs.mkdirSync(SAVED_PROMPTS_DIR, { recursive: true });
 }
@@ -29,10 +43,12 @@ function migrateSingleJsonToDirectory(): void {
     ensureDir();
     for (const prompt of prompts) {
       if (!prompt.id) continue;
-      const filePath = path.join(SAVED_PROMPTS_DIR, `${prompt.id}.yaml`);
-      if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, yaml.dump(prompt, { lineWidth: 120, noRefs: true }), 'utf8');
-      }
+      try {
+        const filePath = promptPath(prompt.id);
+        if (!fs.existsSync(filePath)) {
+          fs.writeFileSync(filePath, yaml.dump(prompt, { lineWidth: 120, noRefs: true }), 'utf8');
+        }
+      } catch { /* skip prompts with invalid ids */ }
     }
 
     fs.unlinkSync(LEGACY_SAVED_PROMPTS_JSON);
@@ -83,7 +99,7 @@ export function writeSavedPrompts(prompts: SavedPromptFile[]): void {
 
   for (const prompt of prompts) {
     if (!prompt.id) continue;
-    const filePath = path.join(SAVED_PROMPTS_DIR, `${prompt.id}.yaml`);
+    const filePath = promptPath(prompt.id);
     fs.writeFileSync(filePath, yaml.dump(prompt, { lineWidth: 120, noRefs: true }), 'utf8');
   }
 }

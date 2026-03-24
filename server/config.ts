@@ -119,14 +119,14 @@ export function resolveConfig(): AppConfig {
       || DEFAULTS.openrouterApiKey,
 
     port:
-      parseInt(process.env.PORT || '', 10)
-      || yamlCfg.port
-      || DEFAULTS.port,
+      (process.env.PORT ? parseInt(process.env.PORT, 10) : undefined)
+      ?? yamlCfg.port
+      ?? DEFAULTS.port,
 
     apiPort:
-      parseInt(process.env.API_PORT || '', 10)
-      || yamlCfg.apiPort
-      || DEFAULTS.apiPort,
+      (process.env.API_PORT ? parseInt(process.env.API_PORT, 10) : undefined)
+      ?? yamlCfg.apiPort
+      ?? DEFAULTS.apiPort,
 
     storageBackend,
   };
