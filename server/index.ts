@@ -4,6 +4,7 @@ import { resolveConfig } from './config';
 import { loadSavedPrompts, writeSavedPrompts } from './storage';
 
 const config = resolveConfig();
+const OPENROUTER_TIMEOUT_MS = 90_000;
 
 const app = express();
 app.use(cors());
@@ -17,8 +18,10 @@ if (!config.openrouterApiKey) {
 app.post('/api/chat', async (req, res) => {
   const { model, messages, temperature, response_format } = req.body;
   const upstreamController = new AbortController();
-  const abortUpstream = () => {
+  let abortReason: 'client' | 'timeout' | null = null;
+  const abortUpstream = (reason: 'client' | 'timeout') => {
     if (!upstreamController.signal.aborted) {
+      abortReason = reason;
       upstreamController.abort();
     }
   };
@@ -26,11 +29,17 @@ app.post('/api/chat', async (req, res) => {
     // `req.close` fires on normal request completion in recent Node versions,
     // so only treat a premature response close as a client disconnect.
     if (!res.writableEnded) {
-      abortUpstream();
+      abortUpstream('client');
     }
   };
+  const handleRequestAborted = () => {
+    abortUpstream('client');
+  };
+  const timeoutId = setTimeout(() => {
+    abortUpstream('timeout');
+  }, OPENROUTER_TIMEOUT_MS);
 
-  req.on('aborted', abortUpstream);
+  req.on('aborted', handleRequestAborted);
   res.on('close', handleResponseClose);
 
   try {
@@ -60,12 +69,17 @@ app.post('/api/chat', async (req, res) => {
     res.json(data);
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
+      if (abortReason === 'timeout' && !res.headersSent) {
+        console.error(`OpenRouter request timed out after ${OPENROUTER_TIMEOUT_MS}ms`);
+        return res.status(504).json({ error: `LLM upstream timed out after ${OPENROUTER_TIMEOUT_MS}ms` });
+      }
       return;
     }
     console.error('LLM call failed:', error);
     res.status(500).json({ error: 'LLM call failed' });
   } finally {
-    req.off('aborted', abortUpstream);
+    clearTimeout(timeoutId);
+    req.off('aborted', handleRequestAborted);
     res.off('close', handleResponseClose);
   }
 });

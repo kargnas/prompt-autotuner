@@ -563,6 +563,9 @@ const App: React.FC = () => {
                     setTranslatedStatus('process.cancelled');
                     return;
                 }
+
+                controller.abort();
+
                 if (!finishRun()) {
                     return;
                 }
