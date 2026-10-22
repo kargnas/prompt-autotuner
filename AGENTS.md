@@ -12,7 +12,7 @@
 ## Development Environment
 
 ### Prerequisites
-- Node.js ≥ 18 (LTS)
+- Node.js 24.22.1 (pinned in `.nvmrc`). The published package does not declare `engines`, so the npm install floor is unchanged.
 - pnpm ≥ 9
 - OpenRouter API key (https://openrouter.ai)
 
@@ -38,7 +38,7 @@ pnpm dev          # Vite :3000 + Express :3001
 - **Type check**: `pnpm exec tsc --noEmit` — must pass with 0 errors
 - **Lint**: `pnpm exec eslint .` — warnings acceptable, errors must be fixed
 - **Build**: `pnpm build` — must exit 0
-- **GitHub Actions CI matrix**: lint/build runs on Node.js `20`, `22`, `24`, and `latest`
+- **GitHub Actions CI matrix**: lint/build runs on Node.js `22.23.4`, `24.22.1`, and `26.12.1`. Release builds use Node.js `24.22.1`.
 
 ### Configuration System
 

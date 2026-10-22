@@ -22,7 +22,7 @@
 
 | Requirement      | Version  | Notes                           |
 |------------------|----------|---------------------------------|
-| Node.js          | ≥ 18     | LTS recommended                 |
+| Node.js          | 24.22.1  | Pinned in `.nvmrc`              |
 | pnpm             | ≥ 9      | `npm i -g pnpm` if missing      |
 | OpenRouter key   | —        | https://openrouter.ai           |
 
